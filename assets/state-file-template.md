@@ -4,14 +4,23 @@
   the next session reads. Write it AS a letter to a cold agent who has no memory
   of this work.
 
-  Fill the [bracketed] parts and delete the <!-- guidance --> comments as you go.
-  Keep it updated after every meaningful step — not once at the end.
+  Fill the [bracketed] parts and delete the guidance comments as you go.
+  Keep it updated after every meaningful step — not once at the end. When you update,
+  edit the body sections FIRST and re-write START HERE + the "Last updated" stamp LAST,
+  as the commit point — so a half-finished update leaves START HERE behind reality, not
+  ahead of it.
   Section order is deliberate: the things whose loss is fatal come first.
+  ONE active state file per TASK, not per directory. If several tasks share a root,
+  name each file for its task (e.g. TO_THE_NEXT_SESSION_<task-slug>.md) and point each
+  relay prompt at its own file.
 -->
 
 # TO THE NEXT SESSION — [task name]
 
 _Last updated: [YYYY-MM-DD HH:MM]_
+_Status: active_
+<!-- Status: active | superseded | complete | abandoned. Optional, on their own lines:
+     Handoff-id: [slug]   ·   Supersedes: [/abs/path/to/previous] -->
 <!-- Keep exactly ONE active state file per task. If you replace this file, add a line
      "Superseded by: [/abs/path/to/new/state-file]" here and stop updating this one —
      never leave two active files with no pointer to the live one.
@@ -33,9 +42,14 @@ _Last updated: [YYYY-MM-DD HH:MM]_
 <!-- Rules that, if dropped, produce ACTIVE ERROR (not just confusion): integrity
      rules, "never declare X", "do not touch Y", tier/scope boundaries as rules.
      Paste them exactly. If you're tempted to tidy one, don't — the tidy version
-     is how the next session ships the mistake. -->
-- [ ] [exact rule, word for word]
-- [ ] [exact rule, word for word]
+     is how the next session ships the mistake.
+     Give each a STABLE ID (C1, C2, …) — these are standing rules, NOT tasks to check
+     off, and the IDs let the relay prompt carry the same text and let you diff the two
+     copies. These only grow; never quietly drop one. To retire one, do NOT delete it —
+     strike it through with a dated reason and keep the original:
+       ~~C2: [original verbatim rule]~~ LIFTED YYYY-MM-DD because [reason]. -->
+- **C1:** [exact rule, word for word]
+- **C2:** [exact rule, word for word]
 
 ## STATUS  (where we are, in prose)
 <!-- Enough that a cold reader understands the current state without scrollback.
@@ -68,6 +82,10 @@ decision to make, with absolute paths.]
 - **Goal:** [...]
 - **In scope / out of scope:** [...]
 - **Key fixed numbers / tiers:** [exact values — the things a summary would round].
+  <!-- For any number TRANSCRIBED here (not re-derivable from an artifact), add its
+       source so the next session can re-check it, e.g.
+       "A = score ≥ 80 [transcribed — re-verify against /abs/spec.md]".
+       A mis-copied constant otherwise passes every gate. -->
 
 ## DECISIONS & CHANGELOG  (decision + WHY — append-only)
 <!-- A decision without its reason invites re-litigation and drift. One line each:

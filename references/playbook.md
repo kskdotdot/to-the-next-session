@@ -16,6 +16,8 @@ After a step that changed anything, update:
 - [ ] **NEXT TASK** — is the single next action still correct and concrete?
 - [ ] **ARTIFACT INDEX** — did you create/modify a ground-truth file? Add it with its
       absolute path and a "how to re-verify" note. Did a path move? Fix it now.
+      Optionally record the commit/mtime you trusted a re-derivable number *as of*; on
+      resume, a one-line comparison flags drift without a full re-run.
 - [ ] **DECISIONS** — did you decide something? Append one line: *what* and *why*.
 - [ ] **INVIOLABLE CONSTRAINTS** — did a new must-not-break rule emerge? Add it
       verbatim. (These only grow; never quietly drop one.)
@@ -48,8 +50,11 @@ Make it concrete — verify each, honestly, using *only* the files:
 4. **Paths resolve; numbers re-derive.** Every path in the Artifact Index is absolute
    and actually exists. If the handoff may cross machines, each artifact also has a
    portability anchor (repo+commit, a path under a named sync root, shared drive, or
-   bundled archive) so the path is resolvable on the other end. The load-bearing numbers are
-   reproducible from an artifact (ideally a re-runnable script), not merely asserted.
+   bundled archive) so the path is resolvable on the other end — and remember the anchor
+   is a *recovery instruction*: on a fresh machine you clone at the commit / wait for the
+   sync root / unpack the archive before the absolute path resolves. The load-bearing
+   numbers are reproducible from an artifact (ideally a re-runnable script), not merely
+   asserted.
 5. **Decisions carry reasons.** Recent DECISIONS entries say *why*, so the next
    session won't reopen and drift on settled questions.
 6. **Honesty preserved.** Everything uncertain is marked `[unverified]` / `[要確認]`.
@@ -71,7 +76,9 @@ thing that is about to vanish; only the file survives.
 ### Optional: mechanical pre-check
 
 The mechanical half of the audit (sections present, paths absolute-and-existing,
-constraints/next-task non-empty, `[unverified]` markers surfaced) is automatable. If
+constraints/next-task non-empty, the INVIOLABLE CONSTRAINTS block matching the relay
+prompt's copy byte-for-byte — the constraint IDs make this diff trivial — and
+`[unverified]` markers surfaced) is automatable. If
 you have a runtime that can run a small script, a checker like this is a fast
 pre-filter — but it can only confirm *form*, never *sufficiency*. The judgment
 questions (is the goal recoverable? is the next action truly unambiguous?) are yours.

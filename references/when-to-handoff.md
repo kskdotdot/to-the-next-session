@@ -39,7 +39,8 @@ task, and write one memory for a convention you discovered along the way.
 
 ## Boundary against planning skills
 
-`planning-with-files`, `writing-plans`, and `executing-plans` are about *the plan* —
+Planning skills (named here `planning-with-files`, `writing-plans`, `executing-plans`
+as examples — substitute whatever your runtime provides, or none) are about *the plan* —
 breaking work into steps and tracking progress through them. They mostly assume a
 continuous session. This skill is about *surviving the boundary between sessions* with
 precision intact. The layers are different and complementary:

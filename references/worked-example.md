@@ -69,15 +69,29 @@ script** rather than being transcribed, the dropped-rows decision carries its **
 and an audit artifact**, and the disputed count is honestly flagged `[unverified]`
 with the way to settle it.
 
+On Windows the same Artifact Index entry would read, e.g.
+`C:\Users\you\records\tier.py | cleaning + tiering script |
+python C:\Users\you\records\tier.py | repo records-cleanup @ a1b2c3d` — absolute path
+plus the same portability anchor, so it resolves on either OS.
+
+(If a second precision-critical task were active under the same directory, this file
+would be named for its task — e.g. `TO_THE_NEXT_SESSION_records-retier.md` — because the
+rule is one active file per *task*, not per directory.)
+
 ## The relay prompt (what gets pasted into the fresh session)
 
 ```
 You are resuming an in-progress task. You start cold: the files are the source of
 truth, not memory. Don't reconstruct from a summary — read the real state.
 
+The state file: repo records-cleanup @ a1b2c3d -> TO_THE_NEXT_SESSION.md. On a new
+machine, clone that repo at a1b2c3d first; on the original machine it resolved to
+/home/work/records/TO_THE_NEXT_SESSION.md.
+
 Read first, in order:
-1. /home/work/records/TO_THE_NEXT_SESSION.md — top to bottom.
-2. Then the files in its ARTIFACT INDEX, at their absolute paths.
+1. The state file above — top to bottom.
+2. Then the files in its ARTIFACT INDEX — on a different machine, clone records-cleanup
+   @ a1b2c3d to materialize the /home/work/records/... paths before opening them.
 
 Where things stand: cleaning and tiering done and reproducible; report ~50% drafted;
 one figure (Tier C count) disputed and marked [unverified].

@@ -5,7 +5,7 @@ in-progress task across a context window, session, machine, or person boundary �
 so a fresh agent (or you, later, on another device) resumes cold without losing the
 exact numbers, decisions, and must-not-break constraints that matter.**
 
-> Status: **v0.1.0** — early but usable. Interfaces and wording may change.
+> Status: **v0.2.0** — usable; interfaces may evolve.
 
 ## The problem
 
@@ -48,6 +48,7 @@ assets/relay-prompt-template.md   the copy-paste relay prompt
 references/playbook.md            persist-as-you-go checklist, self-sufficiency audit, compaction
 references/when-to-handoff.md     file-relay vs summarization vs memory vs planning
 references/worked-example.md      a generic long-task handoff, start to finish
+CHANGELOG.md                      version history
 ```
 
 ## Using it
