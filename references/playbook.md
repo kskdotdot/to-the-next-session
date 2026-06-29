@@ -76,9 +76,12 @@ thing that is about to vanish; only the file survives.
 ### Optional: mechanical pre-check
 
 The mechanical half of the audit (sections present, paths absolute-and-existing,
-constraints/next-task non-empty, the INVIOLABLE CONSTRAINTS block matching the relay
-prompt's copy byte-for-byte — the constraint IDs make this diff trivial — and
-`[unverified]` markers surfaced) is automatable. If
+constraints/next-task non-empty, exactly ONE active (un-superseded `Status: active`)
+state file under the task root, the INVIOLABLE CONSTRAINTS block matching the relay
+prompt's copy byte-for-byte — compare per constraint ID (C1, C2, …) character by
+character, and generate the relay's constraint block by COPY, never by retyping, so a
+trailing space or smart-quote can't silently drift one copy — and `[unverified]`
+markers surfaced) is automatable. If
 you have a runtime that can run a small script, a checker like this is a fast
 pre-filter — but it can only confirm *form*, never *sufficiency*. The judgment
 questions (is the goal recoverable? is the next action truly unambiguous?) are yours.

@@ -27,12 +27,12 @@ _Last updated: 2025-03-14 18:40_
 - What this is: clean the records set, assign A/B/C tiers by score, write the report.
 - Where we are: cleaning done, tiers assigned, report ~50% drafted.
 - Do next: finish the report's "Tier B" section — see NEXT TASK.
-- Must not break: never label a record "confirmed" without a source match (full list below).
+- Must not break: C1 — never label a record "confirmed" without a source match (full list below).
 - Read order: this file, then the files in ARTIFACT INDEX at their absolute paths.
 
 ## INVIOLABLE CONSTRAINTS
-- [ ] A record may be labeled "confirmed" ONLY if it has a matching source row. No exceptions.
-- [ ] Do NOT declare the report "final" — it is a draft until the client review pass.
+- **C1:** A record may be labeled "confirmed" ONLY if it has a matching source row. No exceptions.
+- **C2:** Do NOT declare the report "final" — it is a draft until the client review pass.
 
 ## STATUS
 Cleaning and tiering are complete and reproducible from the script below. The report
@@ -99,9 +99,9 @@ one figure (Tier C count) disputed and marked [unverified].
 Your single next action: write the "Tier B" section of /home/work/records/report.md
 using counts from re-running /home/work/records/tier.py (don't hand-type numbers).
 
-Inviolable constraints — obey exactly:
-- A record may be labeled "confirmed" ONLY if it has a matching source row. No exceptions.
-- Do NOT declare the report "final" — it is a draft until the client review pass.
+Inviolable constraints — obey exactly (same IDs as the state file):
+- C1: A record may be labeled "confirmed" ONLY if it has a matching source row. No exceptions.
+- C2: Do NOT declare the report "final" — it is a draft until the client review pass.
 
 Before you act: confirm you can restate, from the files alone, the goal, both
 constraints, and your next action. Anything marked [unverified] is not yet established
@@ -117,3 +117,28 @@ updated the file to a settled fact. The version above intentionally leaves it
 the way to resolve it, so the next session can't unknowingly cite the wrong number.
 That is the whole game — the boundary is crossed with the precision, the rules, and
 the open questions all intact.
+
+## A second shape: non-file artifacts and no-filesystem runtimes
+
+The same discipline survives two cases the first example doesn't show.
+
+**A large or non-file artifact** — a multi-GB model checkpoint, a cloud bucket, a
+database table — is pointed at, never transcribed, and re-running it to "re-derive" is
+infeasible. The Artifact Index row gives a *locator* and a *cheap probe* in place of a
+re-runnable script:
+
+| Locator | What it is | How to re-verify (cheap probe) | Portability anchor |
+|---|---|---|---|
+| `s3://acme-models/run-2025-03-14/model.ckpt` | trained checkpoint (4.2 GB) | `aws s3 ls s3://acme-models/run-2025-03-14/`; sha256 == `9f3c…` | bucket `acme-models`, prefix `run-2025-03-14/` |
+| `bigquery: proj.analytics.tiers` | tiered output table | `SELECT COUNT(*) FROM proj.analytics.tiers` → 41 | dataset `proj.analytics` |
+
+The checksum and the row count are the *settle-on-resume* probe — not a full re-run,
+but enough to catch drift on something you cannot cheaply rebuild.
+
+**A runtime with no writable filesystem** — a pure chat/API surface, a browser-only
+agent — has nowhere to put a state *file*. The discipline is unchanged; only the
+substrate moves: the state file becomes one self-contained block pasted into the relay
+(or a gist / shared-doc URL), and the Artifact Index points by URL + ID instead of by
+path. Verbatim constraints (C1, C2, …), the portability anchors, and the
+self-sufficiency audit all still apply — you are carrying the letter in the message body
+instead of on disk.

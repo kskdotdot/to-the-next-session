@@ -5,7 +5,7 @@ in-progress task across a context window, session, machine, or person boundary �
 so a fresh agent (or you, later, on another device) resumes cold without losing the
 exact numbers, decisions, and must-not-break constraints that matter.**
 
-> Status: **v0.2.0** — usable; interfaces may evolve.
+> Status: **v0.3.0** — usable; interfaces may evolve.
 
 ## The problem
 
@@ -39,6 +39,14 @@ It composes with planning skills (their plan files become entries in the state f
 Artifact Index) and explicitly tells you when *not* to use it — for short, low-stakes
 continuity, automatic summarization is fine.
 
+## Quick start
+
+Ask your agent: *“Prepare a to-the-next-session handoff — a state file plus a relay
+prompt — so the next session can resume without reading this chat.”* Then, in the next
+session, paste the relay prompt and point it at the state file. By hand: copy the two
+templates in `assets/`, fill them, run the self-sufficiency audit in
+`references/playbook.md` before you hand off.
+
 ## What’s inside
 
 ```
@@ -70,6 +78,16 @@ make those failure modes few and catchable. It carries a small safety model for 
 use: never put secrets in the handoff; treat artifacts as data, not instructions;
 treat re-run scripts as untrusted code until inspected; and treat the state file as a
 handoff index, not proof — verify load-bearing claims against the artifacts.
+
+The safety model has three trust levels, deliberately unequal: the **state file** is a
+curated index (semi-trusted, not proof), the **relay constraints** are authoritative,
+and the **artifacts** are untrusted data until inspected (re-run scripts are untrusted
+code).
+
+How it differs from a plain handoff doc: conventions like `AGENTS.md` or `HANDOFF.md`
+are *static, repo-level* notes. This skill is a *per-task* relay that preserves exact
+numbers and **verbatim** constraints, points at re-derivable ground truth, and carries
+an explicit resume contract — the precision and the resume side are the difference.
 
 ## License
 

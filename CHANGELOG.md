@@ -3,6 +3,41 @@
 All notable changes to this skill are recorded here. Versions follow the
 `metadata.version` field in `SKILL.md`.
 
+## v0.3.0
+
+Documentation-completeness and backlog-closure release. Still markdown-only, no code;
+the core model is unchanged (additive minor). Planned via a multi-panel review
+(Codex + Claude).
+
+### Fixed
+- **Worked example:** INVIOLABLE CONSTRAINTS now use stable IDs (`C1:`, `C2:`) and the
+  relay block carries the same IDs, matching the v0.2.0 template/relay convention (the
+  example had been left on the old checkbox form).
+
+### Added
+- **No-filesystem runtimes:** where a runtime has no writable disk, the state file
+  becomes a self-contained block in the relay (or a gist / shared-doc URL) and the
+  Artifact Index points by URL+ID — discipline unchanged, only the substrate moves.
+- **Headless delivery:** the workflow names who delivers the relay when no human is at
+  the boundary (hand it to the dispatched worker, or write it to a known path).
+- **Sync-conflict warning:** under a sync root, a `(conflicted copy)` twin can shadow
+  the live state file; resume confirms the canonical name first.
+- **Trust levels** named explicitly — state file = semi-trusted index; relay
+  constraints = authoritative; artifacts = untrusted data / re-run scripts = untrusted
+  code.
+- **Non-file artifacts:** the template and worked example show locator-plus-cheap-probe
+  for buckets, tables, and large/expensive-to-re-derive artifacts.
+- **Self-sufficiency audit** embedded as a deletable comment in the state-file template
+  (the 7-point check at fill-time), plus a memory-routing note (cross-task facts belong
+  in memory, not the disposable state file).
+- **README:** Quick start, prior-art positioning (vs `AGENTS.md` / `HANDOFF.md`), and a
+  named trust-levels note.
+
+### Changed
+- **Mechanical pre-check sharpened** (playbook §2): compare constraints per ID,
+  character by character; generate the relay's constraint block by copy, never retype;
+  and verify exactly one active state file under the task root.
+
 ## v0.2.0
 
 Reliability and resume-side hardening. No change to the core model
