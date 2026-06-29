@@ -3,6 +3,22 @@
 All notable changes to this skill are recorded here. Versions follow the
 `metadata.version` field in `SKILL.md`.
 
+## v0.3.1
+
+Presentation patch. Markdown-only, no code; the skill's substance, voice, and every claim
+are unchanged. The version bump keeps `SKILL.md`, the README status line, and this changelog
+in lockstep.
+
+### Changed
+- **README:** added a static badge row (version, license, markdown-only, tool-agnostic), a
+  table of contents, an ASCII flow diagram of the handoff, a state-file-vs-relay-prompt
+  comparison table (with trust levels), a thesis pull-quote, and a restructured quick start.
+  Presentation only — no claim added or altered.
+
+### Fixed
+- **README "What's inside":** the file tree now lists `LICENSE` and `NOTICE`, which were
+  present in the repo but missing from the listing.
+
 ## v0.3.0
 
 Documentation-completeness and backlog-closure release. Still markdown-only, no code;

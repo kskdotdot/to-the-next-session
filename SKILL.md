@@ -15,7 +15,7 @@ description: >-
   low-stakes continuity, summarization is fine. NOT for within-session step tracking,
   authoring a plan, or storing facts for unrelated future tasks (memory).
 metadata:
-  version: 0.3.0
+  version: 0.3.1
 ---
 
 # To The Next Session

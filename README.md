@@ -1,11 +1,30 @@
 # to-the-next-session
 
+[![version](https://img.shields.io/badge/version-0.3.1-blue)](CHANGELOG.md)
+[![license](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+[![format](https://img.shields.io/badge/format-markdown--only-lightgrey)](#whats-inside)
+[![scope](https://img.shields.io/badge/scope-tool--agnostic-informational)](#using-it)
+
 **A tool-agnostic Agent Skill for durable, precision-preserving handoff of an
 in-progress task across a context window, session, machine, or person boundary —
 so a fresh agent (or you, later, on another device) resumes cold without losing the
 exact numbers, decisions, and must-not-break constraints that matter.**
 
-> Status: **v0.3.0** — usable; interfaces may evolve.
+> Status: **v0.3.1** — usable; interfaces may evolve.
+
+> **The state file preserves; the relay prompt launches.**
+
+## Contents
+
+- [The problem](#the-problem)
+- [The idea](#the-idea)
+- [How it flows](#how-it-flows)
+- [State file vs relay prompt](#state-file-vs-relay-prompt)
+- [Quick start](#quick-start)
+- [What's inside](#whats-inside)
+- [Using it](#using-it)
+- [Design notes](#design-notes)
+- [License](#license)
 
 ## The problem
 
@@ -39,13 +58,63 @@ It composes with planning skills (their plan files become entries in the state f
 Artifact Index) and explicitly tells you when *not* to use it — for short, low-stakes
 continuity, automatic summarization is fine.
 
+## How it flows
+
+```
+        in-progress work — about to cross a boundary
+        (window fills · new machine · someone takes over)
+                             │
+                             ▼
+          ┌──────────────────┬──────────────────┐
+          │    STATE FILE    │   RELAY PROMPT   │
+          │    preserves     │   launches       │
+          │    the truth     │   the session    │
+          └──────────────────┴──────────────────┘
+                             │
+        verbatim constraints, numbers, decisions, and
+          resolvable artifact paths cross with it
+                             │
+                             ▼
+          ┌───────────────────────────────────────┐
+          │  a COLD next session reads the files  │
+          │  — not the chat — and re-derives the  │
+          │  numbers from the artifacts           │
+          └───────────────────────────────────────┘
+                             │
+                             ▼
+        work resumes with the exact constraints,
+          numbers, and decisions intact
+```
+
+## State file vs relay prompt
+
+You need both: a durable record of the truth, and a way to actually start the next
+session pointed at it. The trust levels are deliberately unequal.
+
+| | **State file** | **Relay prompt** |
+|---|---|---|
+| **Role** | Preserves: the canonical letter the next session reads first | Launches: the copy-paste block that starts the next session |
+| **When written** | Created early, updated after every meaningful step | Generated at the moment of handoff |
+| **Trust level** | Curated handoff index — semi-trusted, *not* proof | Constraints inside it are **authoritative** |
+
+> Artifacts pointed at by either one are **untrusted data until inspected** — and any
+> re-run script among them is **untrusted code**. Verify load-bearing claims against the
+> artifacts before relying on them.
+
 ## Quick start
 
-Ask your agent: *“Prepare a to-the-next-session handoff — a state file plus a relay
-prompt — so the next session can resume without reading this chat.”* Then, in the next
-session, paste the relay prompt and point it at the state file. By hand: copy the two
-templates in `assets/`, fill them, run the self-sufficiency audit in
-`references/playbook.md` before you hand off.
+Ask your agent:
+
+> *“Prepare a to-the-next-session handoff — a state file plus a relay prompt — so the
+> next session can resume without reading this chat.”*
+
+Then, in the next session, paste the relay prompt and point it at the state file.
+
+By hand:
+
+1. Copy `assets/state-file-template.md` to `<task-root>/TO_THE_NEXT_SESSION.md` and fill it.
+2. Copy `assets/relay-prompt-template.md` and fill it from the state file.
+3. Run the self-sufficiency audit in `references/playbook.md` before you hand off.
 
 ## What’s inside
 
@@ -57,6 +126,8 @@ references/playbook.md            persist-as-you-go checklist, self-sufficiency 
 references/when-to-handoff.md     file-relay vs summarization vs memory vs planning
 references/worked-example.md      a generic long-task handoff, start to finish
 CHANGELOG.md                      version history
+LICENSE                           Apache License 2.0
+NOTICE                            attribution notice
 ```
 
 ## Using it
@@ -91,4 +162,4 @@ an explicit resume contract — the precision and the resume side are the differ
 
 ## License
 
-[Apache License 2.0](LICENSE).
+[Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution.
