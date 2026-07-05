@@ -1,6 +1,6 @@
 # to-the-next-session
 
-[![version](https://img.shields.io/badge/version-0.3.1-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.4.0-blue)](CHANGELOG.md)
 [![license](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![format](https://img.shields.io/badge/format-markdown--only-lightgrey)](#whats-inside)
 [![scope](https://img.shields.io/badge/scope-tool--agnostic-informational)](#using-it)
@@ -10,7 +10,7 @@ in-progress task across a context window, session, machine, or person boundary �
 so a fresh agent (or you, later, on another device) resumes cold without losing the
 exact numbers, decisions, and must-not-break constraints that matter.**
 
-> Status: **v0.3.1** — usable; interfaces may evolve.
+> Status: **v0.4.0** — usable; interfaces may evolve.
 
 > **The state file preserves; the relay prompt launches.**
 
@@ -53,6 +53,11 @@ artifacts on disk. Two artifacts:
    the status, the single next action, and the constraints inline and verbatim.
 
 **The state file preserves; the relay prompt launches.**
+
+Both carry **decision provenance**: user-consulted decisions record why they were
+asked, what was chosen, and what was rejected — and the relay forbids re-proposing a
+rejected alternative while its recorded conditions hold — so a dead approach cannot
+come back as a fresh idea after the boundary.
 
 It composes with planning skills (their plan files become entries in the state file’s
 Artifact Index) and explicitly tells you when *not* to use it — for short, low-stakes
@@ -125,6 +130,7 @@ assets/relay-prompt-template.md   the copy-paste relay prompt
 references/playbook.md            persist-as-you-go checklist, self-sufficiency audit, compaction
 references/when-to-handoff.md     file-relay vs summarization vs memory vs planning
 references/worked-example.md      a generic long-task handoff, start to finish
+references/compact-defense.md     example countermeasures against auto-compaction (illustrative)
 CHANGELOG.md                      version history
 LICENSE                           Apache License 2.0
 NOTICE                            attribution notice

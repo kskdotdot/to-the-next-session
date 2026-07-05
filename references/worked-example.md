@@ -59,6 +59,16 @@ by re-running /home/work/records/tier.py (do not hand-type the numbers).
 - 2025-03-13 Chose score-band tiers over quartiles because the client specified fixed cutoffs.
 - 2025-03-14 Dropped 12 rows with no source — kept as /home/work/records/dropped.csv for audit.
 
+### D1. Handling of records with no source row
+- consultation: "12 records have no matching source row — drop them, impute a source, or keep them unlabeled?"
+- asked because: C1 forbids labeling them "confirmed", and the report needs a defensible denominator.
+- options considered: drop with audit file / impute from nearest neighbor / keep unlabeled.
+- chosen: "drop them, keep an audit file" (user's words).
+- rationale / evidence: imputation would manufacture the source matches C1 exists to prevent; the client audits row counts.
+- rejected — do not resurrect: imputing sources — it fabricates exactly what C1 forbids; holds unless the client supplies the missing source extract.
+- downstream implication: report denominators exclude the 12 rows; cite dropped.csv when counts are questioned.
+- source/confidence: visible transcript.
+
 ## OPEN ISSUES / UNKNOWNS
 - [ ] `[unverified]` Tier C count shows 41 in tiers.csv but 39 in an earlier note — re-run tier.py to settle before citing it in the report.
 ```
@@ -67,7 +77,9 @@ Notice what the file does: the cutoffs are stated **exactly** ("A = score ≥ 80
 not round"), the constraint is **verbatim**, the numbers live in a **re-runnable
 script** rather than being transcribed, the dropped-rows decision carries its **reason
 and an audit artifact**, and the disputed count is honestly flagged `[unverified]`
-with the way to settle it.
+with the way to settle it. The user-consulted decision (D1) carries its **full
+record** — why the question was asked, what was rejected and under what conditions —
+so a later session cannot innocently re-propose imputation as a fresh idea.
 
 On Windows the same Artifact Index entry would read, e.g.
 `C:\Users\you\records\tier.py | cleaning + tiering script |
@@ -79,6 +91,9 @@ would be named for its task — e.g. `TO_THE_NEXT_SESSION_records-retier.md` —
 rule is one active file per *task*, not per directory.)
 
 ## The relay prompt (what gets pasted into the fresh session)
+
+In the actual handoff message this block is printed **last**, read back verbatim from
+the saved relay file — paths and caveats stated before it, nothing after it.
 
 ```
 You are resuming an in-progress task. You start cold: the files are the source of

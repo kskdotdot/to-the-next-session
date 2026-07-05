@@ -15,7 +15,7 @@ description: >-
   low-stakes continuity, summarization is fine. NOT for within-session step tracking,
   authoring a plan, or storing facts for unrelated future tasks (memory).
 metadata:
-  version: 0.3.1
+  version: 0.4.0
 ---
 
 # To The Next Session
@@ -28,9 +28,13 @@ When work must survive a boundary, in order:
 2. Fill **START HERE**, **INVIOLABLE CONSTRAINTS** (verbatim, with IDs), **NEXT TASK**,
    and **ARTIFACT INDEX** (each path with a portability anchor/locator).
 3. **Persist after every meaningful step** — never batch it for the end.
-4. **Before handing off, run the self-sufficiency audit** (`references/playbook.md` §2)
+4. **Sweep the visible conversation for user-consulted decisions** (structured
+   questions the user answered, plan approvals, corrections) and record each in
+   DECISIONS & CHANGELOG — why it was asked, what was chosen, what was rejected.
+5. **Before handing off, run the self-sufficiency audit** (`references/playbook.md` §2)
    — the gate that catches a broken handoff before it ships.
-5. Copy `assets/relay-prompt-template.md`, fill it, and hand off.
+6. Copy `assets/relay-prompt-template.md`, fill it, save it — then print it **verbatim
+   from the saved file** as the **final fenced block** of your handoff message.
 
 *Resuming* a handoff instead? See **Resuming a handoff** below. Everything past this
 block is the reasoning behind each step — read it to apply judgment, not to find the
@@ -62,6 +66,11 @@ make those failure modes few and catchable, not to pretend they're gone.)
 
 The mental model: **the conversation is disposable; the files are the memory.**
 
+One race to be aware of: on some runtimes an *automatic* compaction can fire before
+you get to hand off deliberately. That is a runtime-configuration problem more than a
+writing problem — `references/compact-defense.md` sketches example countermeasures
+(pre-compaction hooks, usage-threshold warnings) for runtimes that support them.
+
 ## The two artifacts
 
 **The state file preserves; the relay prompt launches.** You need both: a durable
@@ -90,6 +99,14 @@ current status, the one top-priority task, the **inviolable constraints inline a
 verbatim** (so they survive even if the file read is skipped), and the read order.
 This is the piece an unskilled handoff usually omits — and the reason the next session
 starts with the constraints in hand instead of inferring them from a vague request.
+
+Two rules make the relay reliable. First, the **saved relay file is canonical**: when
+you print the relay for copy-paste, read it back from the saved file rather than
+regenerating it, so the printed and saved copies cannot drift. Second, **print it as
+the final fenced block of your handoff message** — paths, status, and any caveats
+stated *before* the block, nothing after it — so the one artifact an unskilled handoff
+omits is the last thing on screen and the easiest thing to copy. Use a four-backtick
+fence so code fences inside the relay cannot break it.
 
 ## The operating discipline
 
@@ -124,6 +141,17 @@ next session ships the mistake.
 **Log decisions with their reasons.** A decision recorded without its *why* invites
 the next session to reopen it and drift. One line — "chose X over Y because Z" — turns
 hours of re-derivation into a glance.
+
+**Give user-consulted decisions the full record.** Decisions the user was consulted on
+die hardest when the conversation goes, and re-litigate worst: the next session sees
+only the outcome, finds the rejected alternative attractive, and proposes it again.
+For each structured user consultation (e.g. AskUserQuestion in Claude Code), plan
+approval, or explicit correction, record: *why the question was asked* (what was
+blocked or ambiguous), the options offered, what the user *chose* — in their own words
+where possible — and what was **rejected, with its reason and the conditions under
+which the rejection holds**. The state-file template carries a record format for this.
+Label each record's source honestly (visible transcript / reconstruction / inference):
+a polished false provenance is worse than an explicit gap.
 
 **Make paths resolvable by the next session.** On the same machine, absolute paths are
 enough — and relative paths are an accident waiting to happen, so use absolute. If the
@@ -178,7 +206,16 @@ all this for short, low-stakes work that will obviously finish in this context.
 **After each meaningful step:** persist (STATUS, NEXT TASK, DECISIONS, Artifact
 Index). Keep START HERE current — it ages fastest and matters most.
 
-**Before handing off:** run the **self-sufficiency audit** — the gate that catches a
+**Before handing off:** first **sweep the visible conversation for user-consulted
+decisions** — structured consultations the user answered, plan approvals, corrections —
+and confirm each is recorded in DECISIONS & CHANGELOG with its why, its chosen option,
+and its rejected alternatives. This sweep is best-effort by construction: if earlier
+turns have already been summarized away, you cannot recover what you can no longer
+see — mark the gap `[not visible in current context]` rather than reconstructing a
+confident-looking history. Record only decisions that affect future action, not every
+preference click.
+
+Then run the **self-sufficiency audit** — the gate that catches a
 broken handoff *before* it ships. Ask, honestly:
 
 > If the conversation history vanished right now, could a cold agent resume correctly
@@ -187,10 +224,12 @@ broken handoff *before* it ships. Ask, honestly:
 Concretely, using only the files: the goal and scope are recoverable; every inviolable
 constraint is present and verbatim; the single next action is unambiguous; every path
 resolves (with a portability anchor if crossing machines) and key numbers are
-re-derivable, not just asserted; recent decisions carry their reasons; nothing
+re-derivable, not just asserted; recent decisions carry their reasons — user-consulted
+ones with their why, their rejected alternatives, and an honest source label; nothing
 uncertain is stated as fact; no secrets leaked in. If any check fails, fix the
 *file* — the conversation is the thing about to disappear. Then generate the relay
-prompt and hand off — a human pastes it into a fresh session, or, when no human is at
+prompt (saved file first, printed verbatim as the final fenced block of your message)
+and hand off — a human pastes it into a fresh session, or, when no human is at
 the boundary, hand it directly to the dispatched worker or write it to a known path the
 next run is set to read. Full checklist: `references/playbook.md`.
 
@@ -249,6 +288,8 @@ the plan becomes one of the ground-truth artifacts, not something you duplicate.
 - `references/when-to-handoff.md` — file-relay vs summarization vs memory vs planning,
   with the boundary against neighboring skills.
 - `references/worked-example.md` — a generic long-task handoff, start to finish.
+- `references/compact-defense.md` — losing the race against auto-compaction: example
+  runtime countermeasures (illustrative only, not a supported component).
 
 ## Platform notes
 

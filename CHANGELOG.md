@@ -3,6 +3,40 @@
 All notable changes to this skill are recorded here. Versions follow the
 `metadata.version` field in `SKILL.md`.
 
+## v0.4.0
+
+Decision-provenance and relay-delivery release. Still markdown-only; the core model is
+unchanged (additive minor). The headline: what the user decided — and *why*, and what
+was rejected — now survives the boundary as deliberately as the constraints do.
+
+### Added
+- **Decision provenance (user-consulted decisions):** a structured record format inside
+  `DECISIONS & CHANGELOG` for structured consultations (e.g. AskUserQuestion), plan
+  approvals, and explicit corrections: the question asked, *why it was asked* (what was
+  blocked/ambiguous), options considered, the chosen option in the user's own words,
+  the rejected alternatives with reasons and the conditions under which the rejection
+  holds, downstream implications, and an honest source/confidence label.
+- **Pre-handoff conversation sweep:** the workflow now mandates a best-effort sweep of
+  the *visible* conversation for user-consulted decisions before handing off — with an
+  explicit honesty rule: history already lost to summarization is marked
+  `[not visible in current context]`, never reconstructed into confident-looking
+  provenance. Only decisions that affect future action are recorded.
+- **Anti-resurrection rule in the relay:** the relay prompt now forbids re-proposing a
+  rejected alternative while its recorded conditions hold; a genuine change of
+  conditions must be raised as an explicit reconsideration citing the record.
+- **Relay delivery gate:** the saved relay file is canonical; the handoff message must
+  reproduce it **verbatim from the saved file** (never regenerated) as the **final
+  fenced block** of the message — paths and caveats before the block, nothing after,
+  four-backtick fence so inner code fences cannot break it.
+- **`references/compact-defense.md`:** example runtime countermeasures for losing the
+  race against automatic compaction (usage-threshold warning, pre-compaction hook with
+  the exit-code-2 trap documented, post-compaction recovery injection) — explicitly
+  illustrative, not a supported component; the skill remains markdown-only.
+- **Audit items 8 & 9** (playbook §2 and the template's embedded audit): user-consulted
+  decisions carried in full; relay printed verbatim from its saved file, last.
+- **Worked example:** a full decision record (`D1`) showing a rejected alternative that
+  must not be resurrected.
+
 ## v0.3.1
 
 Presentation patch. Markdown-only, no code; the skill's substance, voice, and every claim

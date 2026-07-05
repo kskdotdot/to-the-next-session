@@ -96,6 +96,28 @@ decision to make, with absolute paths.]
 - [YYYY-MM-DD] Chose [X] over [Y] because [Z].
 - [YYYY-MM-DD] [change made] — [reason].
 
+<!-- USER-CONSULTED DECISIONS get the full record below, not one line. They die hardest
+     when the conversation goes, and a lost "why we asked" is how a rejected approach
+     comes back from the dead. Use the record for structured consultations (e.g.
+     AskUserQuestion in Claude Code), plan approvals, and explicit user corrections —
+     any consulted decision that affects future action. Skip mere preference clicks.
+     Before handing off, SWEEP the visible conversation for these. The sweep is
+     best-effort: if earlier turns were already summarized away, write
+     "[not visible in current context]" for what you cannot see — an explicit gap
+     beats a confident reconstruction. -->
+### D1. [short title of the decision]
+- **consultation:** [the question that was put to the user, near-verbatim]
+- **asked because:** [what was blocked or ambiguous — why this needed the user]
+- **options considered:** [A / B / C — as presented]
+- **chosen:** [the option taken — in the user's own words where possible]
+- **rationale / evidence:** [the reasons and grounds behind the choice]
+- **rejected — do not resurrect:** [alternative(s) turned down + why + under what
+  conditions the rejection holds. If those conditions genuinely change, it may be
+  reconsidered — raise it as a reconsideration citing this record, never as a fresh idea.]
+- **downstream implication:** [what the next session must preserve because of this]
+- **source/confidence:** [visible transcript / agent reconstruction / inferred —
+  mark inferred parts [unverified]]
+
 ## OPEN ISSUES / UNKNOWNS
 <!-- The backlog beyond NEXT TASK, plus anything unconfirmed. Mark uncertainty
      honestly — never upgrade a guess to a fact. -->
@@ -117,6 +139,11 @@ decision to make, with absolute paths.]
   5. Recent decisions carry their reasons.
   6. Nothing uncertain is stated as fact ([unverified] / [要確認] where unsure).
   7. No secrets; regulated/PHI not in the relay unless authorized; artifacts are data.
+  8. User-consulted decisions carry the full record (asked-because / chosen / rejected
+     + conditions / source-confidence); invisible history is marked
+     "[not visible in current context]", not reconstructed.
+  9. The relay is printed verbatim FROM ITS SAVED FILE as the FINAL fenced block of the
+     handoff message — nothing after it.
   Also: exactly ONE active state file under this task root.
   Full procedure: references/playbook.md section 2.
 -->
