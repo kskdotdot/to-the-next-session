@@ -1,17 +1,38 @@
 # When to hand off
 
-Choose by failure cost, not task length.
+Activation is gated, not scored. Two gates control initial activation; nothing else
+does.
 
 ## Use this skill
 
-WHEN work will cross a session, machine, person, or context boundary and losing one
-exact number, reason, decision, artifact locator, or must-not rule could change the
-result → DO create a STATE FILE early and keep it current → DONE iff a cold session
-can resume from files alone and receive the saved RELAY PROMPT as a copy-paste box.
+WHEN the user explicitly asks to preserve, transfer, or resume this task for cold
+continuation — handoff, 引き継ぎ, 別セッションで続き, continue on another device,
+pause now and resume later, hand the active task to another person — or supplies a
+RELAY PROMPT or live STATE FILE as operative continuation input (Gate A) → DO
+produce or resume the handoff → DONE iff a cold session can resume from files alone
+and receive the saved RELAY PROMPT as a copy-paste box.
 
-Typical triggers include an explicit handoff request, switching devices, delegating
-to another person, stopping overnight, or a precision-critical task approaching its
-context limit.
+WHEN a current model-visible host pre-compaction signal, or an explicit user warning
+that context is low or automatic compaction is imminent, coincides with work whose
+loss of one load-bearing number, constraint, guard, decision, or locator could alter
+the outcome (Gate B) → DO create the STATE FILE and finalize a relay before the
+automatic summary runs → DONE iff the saved state and relay exist before compaction.
+
+If no pre-compaction signal is visible to the agent and the user has not warned,
+Gate B is false: do not infer imminence from task length, turn count, or context
+growth. Pre-compaction rescue is best effort, not guaranteed.
+
+These gates control initial activation only. Once validly started, keep the same
+non-terminal handoff current through `waiting_user`, receipt of the requested input,
+resume, re-finalization, and close. `waiting_user` by itself never starts a handoff.
+"Early" means promptly after a gate opens, not at the start of every long or
+precision-critical task.
+
+Not triggers, alone or in combination: importance, precision, task length, turn
+count, ordinary context growth, an inferred future boundary, costly reconstruction,
+local time, inactivity, expected overnight stopping, routine live sub-agent
+delegation, or mentioning, quoting, reviewing, editing, or testing this skill and
+its artifacts.
 
 ## Use /compact or automatic summarization
 
@@ -19,8 +40,8 @@ WHEN continuity is low-stakes and omitted details are cheap to reconstruct → D
 the runtime's summary facility → DONE iff no load-bearing fact depends only on that
 summary.
 
-`/compact` compresses the conversation on the runtime's terms. It is useful for
-convenience, but it is not the precision authority for an active handoff.
+A bare `/compact` request does not trigger this skill; an explicit request to
+preserve the task before compaction satisfies Gate A.
 
 ## Use memory
 
@@ -42,5 +63,5 @@ conversation disappears.
 
 ## Skip ceremony
 
-WHEN a short task will finish in the present context and has no costly precision
-surface → DO finish it directly → DONE iff no future session needs to reconstruct it.
+WHEN a task will finish in the present context and no gate has opened → DO finish it
+directly → DONE iff no future session needs to reconstruct it.

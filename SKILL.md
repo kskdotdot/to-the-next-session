@@ -2,17 +2,20 @@
 name: to-the-next-session
 description: >-
   Durable, precision-preserving handoff of active work across a session, machine,
-  person, or context-window boundary. Produces one canonical STATE FILE as the sole
-  source of truth plus a copy-paste RELAY PROMPT deterministically rendered from it,
-  with exact constraints, decisions, current status, required artifact IDs, and
-  freshness detection. Use to produce or resume a handoff when the user says
-  handoff, continue in a new session, 引き継ぎ, 別セッションで続き, 別端末で続き,
-  or when precision-critical work is actually about to cross a boundary. Prefer it
-  over /compact when one dropped number, reason, or must-not rule would be costly.
-  Do not use for ordinary within-session planning, unrelated long-term memory, or
-  low-stakes continuity where lossy summarization is acceptable.
+  person, or context-window boundary. Invoke ONLY when (A) the user explicitly asks
+  to preserve/transfer/resume this task for cold continuation (e.g. handoff,
+  引き継ぎ, 別セッションで続き), or supplies a RELAY PROMPT or live STATE FILE as
+  operative continuation input; OR (B) BOTH (a current model-visible host
+  pre-compaction signal or an explicit user warning that context is low/automatic
+  compaction is imminent) AND (loss of a load-bearing number, constraint, guard,
+  decision, status/next action, or locator could alter the outcome). A alone is
+  sufficient. A bare /compact request, importance, precision, length, turn count,
+  context growth, an inferred boundary, or costly reconstruction alone does not
+  trigger. Review/testing of these artifacts is not operational input. After valid
+  activation, keep the non-terminal state current through waiting_user, resume, and
+  close; never create speculative state.
 metadata:
-  version: 0.5.0
+  version: 0.5.1
 ---
 
 # To The Next Session

@@ -15,10 +15,10 @@ def read(relative: str) -> str:
 class PublicPackageContractTests(unittest.TestCase):
     def test_release_version_and_public_entrypoints(self):
         skill = read("SKILL.md")
-        self.assertRegex(skill, r"(?m)^  version: 0\.5\.0$")
+        self.assertRegex(skill, r"(?m)^  version: 0\.5\.1$")
         readme = read("README.md")
-        self.assertIn("version-0.5.0", readme)
-        self.assertIn("Status: **v0.5.0**", readme)
+        self.assertIn("version-0.5.1", readme)
+        self.assertIn("Status: **v0.5.1**", readme)
         self.assertIn("scripts/handoff.py", readme)
         self.assertNotIn("markdown-only", readme.casefold())
 

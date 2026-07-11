@@ -1,8 +1,10 @@
 # Compact defense: do not lose the race
 
-The primary defense is persist-as-you-go: a current STATE FILE already exists before
-automatic compaction. The public skill ships the state/relay helper, not a runtime
-hook. A host configuration repository may separately integrate deterministic hooks;
+After an activation gate opens (see `references/when-to-handoff.md`), the primary
+defense is persist-as-you-go: a current STATE FILE already exists before automatic
+compaction. Activation itself stays gated; this defense never authorizes speculative
+state creation before a gate opens. The public skill ships the state/relay helper,
+not a runtime hook. A host configuration repository may separately integrate deterministic hooks;
 for example, sync-config-claudecode maintains `scripts/compact-defense.py` for
 Claude Code. Codex and runtimes without equivalent hooks degrade to persistent files
 and manual threshold awareness.

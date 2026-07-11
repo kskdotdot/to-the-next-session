@@ -3,6 +3,25 @@
 All notable changes to this skill are recorded here. Versions follow the
 `metadata.version` field in `SKILL.md`.
 
+## v0.5.1
+
+Trigger-narrowing bugfix. No helper, schema, template, or runtime-hook behavior
+changed.
+
+### Changed
+
+- `SKILL.md` description now states two explicit activation gates: (A) an explicit
+  user request to preserve/transfer/resume, or a RELAY PROMPT / live STATE FILE
+  supplied as operative continuation input; (B) a model-visible pre-compaction
+  signal or explicit user context-low warning combined with load-bearing loss risk.
+  Broad predicates ("about to cross a boundary", "prefer it over /compact when ...
+  would be costly") were removed so importance, precision, or ordinary context
+  growth alone can no longer fire the skill.
+- `references/when-to-handoff.md` restates the same gates, separates initial
+  activation from post-activation lifecycle, and lists explicit non-triggers.
+- `references/compact-defense.md` scopes persist-as-you-go to after a valid
+  activation gate opens.
+
 ## v0.5.0
 
 Deterministic cold-session transport release.
