@@ -1,72 +1,46 @@
-# When to hand off (and when not), and how this relates to neighboring skills
+# When to hand off
 
-The state-file relay is powerful but not free — it asks you to curate. Use it where
-curation pays for itself, and reach for a lighter tool where it doesn't. This file
-sharpens that judgment and draws the boundary against skills that look adjacent.
+Choose by failure cost, not task length.
 
-## File relay vs automatic summarization vs memory
+## Use this skill
 
-Three different jobs, often confused:
+WHEN work will cross a session, machine, person, or context boundary and losing one
+exact number, reason, decision, artifact locator, or must-not rule could change the
+result → DO create a STATE FILE early and keep it current → DONE iff a cold session
+can resume from files alone and receive the saved RELAY PROMPT as a copy-paste box.
 
-**File relay (this skill)** — for an in-progress *task* whose precise state must
-survive a boundary. The defining feature is that **specific exact things would be
-costly to lose**: a threshold, a tier boundary, a measured result, a "never declare X"
-rule, the reason a decision went the way it did. You curate what survives, and the
-survivors are exact because the next session reads the real artifact, not a paraphrase.
+Typical triggers include an explicit handoff request, switching devices, delegating
+to another person, stopping overnight, or a precision-critical task approaching its
+context limit.
 
-**Automatic summarization (`/compact` and equivalents)** — for *conversational
-continuity* when the details are cheap to reconstruct. It is lossy by design: it
-compresses the whole transcript and you don't control what it keeps. That's perfectly
-fine for low-stakes, exploratory, or chatty work — and a poor fit the moment a single
-dropped number or rule would cause a wrong result. Rule of thumb: if you'd be alarmed
-to discover the summary quietly omitted one figure, don't rely on the summary.
+## Use /compact or automatic summarization
 
-**Memory** — for *cross-cutting facts you'll reuse on unrelated future tasks*: a
-standing preference, where a credential lives, a convention you always follow. Memory
-is about *you/the assistant across projects*; file relay is about *one project's full
-state across a boundary*. A handoff state file is deliberately throwaway — it dies when
-the task finishes. A memory is meant to persist beyond any single task.
+WHEN continuity is low-stakes and omitted details are cheap to reconstruct → DO use
+the runtime's summary facility → DONE iff no load-bearing fact depends only on that
+summary.
 
-### Quick decision
+`/compact` compresses the conversation on the runtime's terms. It is useful for
+convenience, but it is not the precision authority for an active handoff.
 
-- Crossing a session/machine/person boundary mid-task, with load-bearing numbers or
-  must-not-break rules → **file relay**.
-- Same session, just want to free up the window on low-stakes work → **summarization**.
-- A durable fact useful next month on a different task → **memory**.
+## Use memory
 
-These compose. You might summarize a side-thread, keep a relay state file for the main
-task, and write one memory for a convention you discovered along the way.
+WHEN a fact should persist across unrelated future tasks → DO record it in the
+appropriate durable memory → DONE iff it is not carrying one active task's full
+status or backlog.
 
-## Boundary against planning skills
+The handoff state is task-scoped and disposable. Memory is cross-task and durable.
 
-Planning skills (named here `planning-with-files`, `writing-plans`, `executing-plans`
-as examples — substitute whatever your runtime provides, or none) are about *the plan* —
-breaking work into steps and tracking progress through them. They mostly assume a
-continuous session. This skill is about *surviving the boundary between sessions* with
-precision intact. The layers are different and complementary:
+## Use planning
 
-- A **plan** answers "what are the steps?"
-- A **relay** answers "how does the full state — plan included — cross to a cold agent
-  without loss?"
+WHEN the question is how to divide work inside the current task → DO use a plan →
+DONE iff steps and dependencies are clear. If that task later crosses a boundary,
+index the plan as A# rather than duplicating it into the state.
 
-In practice they nest: when you have plan files, list them in the relay's ARTIFACT
-INDEX by absolute path. The plan becomes one of the ground-truth artifacts the next
-session reads. You don't duplicate the plan into the state file — you point at it.
+Planning and handoff compose: a plan says what the steps are; this skill preserves
+the exact task state, decisions, constraints, and required evidence when the current
+conversation disappears.
 
-A tell for which you need: if your worry is "am I doing the right steps in the right
-order?", that's planning. If your worry is "when this conversation ends, will the next
-session still know the exact tier cutoffs and that it must not claim completion?",
-that's this skill.
+## Skip ceremony
 
-## When NOT to bother
-
-- **Trivial or short tasks** that will obviously finish inside the current context.
-  Building a state file for a five-minute job is ceremony.
-- **Throwaway exploration** where being wrong later costs nothing.
-- **Work with no precision surface** — nothing exact, no must-not-break rules, easy to
-  redo from scratch. There's little for a relay to protect.
-
-The honest signal to start a state file: the work is long *or* precision-critical, and
-there's a real chance it outlives this context. When in doubt on a high-stakes task,
-start the file early — an empty scaffold costs little, and a missing handoff costs the
-whole reconstruction.
+WHEN a short task will finish in the present context and has no costly precision
+surface → DO finish it directly → DONE iff no future session needs to reconstruct it.

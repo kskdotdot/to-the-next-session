@@ -1,156 +1,117 @@
 <!--
-  STATE FILE TEMPLATE  —  copy to your task's working directory as
-  TO_THE_NEXT_SESSION.md (or RESUME.md). One per task. This is the FIRST thing
-  the next session reads. Write it AS a letter to a cold agent who has no memory
-  of this work.
+Copy this file to the task root as NN_TO_THE_NEXT_SESSION.md. Fill every
+bracketed value before finalize. Keep one live state per task and update it after
+each meaningful step. The STATE FILE is the sole source of truth for current task
+state; a relay is only a generated transport snapshot.
 
-  Fill the [bracketed] parts and delete the guidance comments as you go.
-  Keep it updated after every meaningful step — not once at the end. When you update,
-  edit the body sections FIRST and re-write START HERE + the "Last updated" stamp LAST,
-  as the commit point — so a half-finished update leaves START HERE behind reality, not
-  ahead of it.
-  Section order is deliberate: the things whose loss is fatal come first.
-  ONE active state file per TASK, not per directory. If several tasks share a root,
-  name each file for its task (e.g. TO_THE_NEXT_SESSION_<task-slug>.md) and point each
-  relay prompt at its own file.
+Status: active | waiting_user | complete | superseded | abandoned
+Target: same-machine | cross-machine
+For same-machine, State locator must equal this file's absolute path.
+For cross-machine, use one resolvable form:
+  repo:https://host/owner/repo.git@<40-hex-commit>#relative/path/to/state.md
+  sync:<named-root>#relative/path/to/state.md
+  archive:<bundle-path-or-URL>#member/path/to/state.md
 -->
 
 # TO THE NEXT SESSION — [task name]
 
-_Last updated: [YYYY-MM-DD HH:MM]_
+_TTNS schema: 1_
+_Handoff ID: [stable-task-slug]_
 _Status: active_
-<!-- Status: active | superseded | complete | abandoned. Optional, on their own lines:
-     Handoff-id: [slug]   ·   Supersedes: [/abs/path/to/previous] -->
-<!-- Keep exactly ONE active state file per task. If you replace this file, add a line
-     "Superseded by: [/abs/path/to/new/state-file]" here and stop updating this one —
-     never leave two active files with no pointer to the live one.
-     NEVER put secrets / credentials / tokens / private keys here. Point to a safe
-     retrieval procedure instead. -->
-<!-- Superseded by: [/abs/path/...]   (fill only when this file is retired) -->
+_Target: [same-machine or cross-machine]_
+_State locator: [absolute path or portable locator described above]_
+_Last updated: [YYYY-MM-DDTHH:MM:SS+TZ]_
+_Superseded by: none_
 
-## START HERE  (read this first — ≤10 lines)
-<!-- The entire situation at a glance, so even a long, grown file re-enters fast.
-     If the next session reads only this block, it should still not do harm. -->
-- **What this is:** [one sentence — the task and its goal].
-- **Where we are:** [one sentence — % done / current phase / what's in flight].
-- **Do next:** [the single most important next action — point to NEXT TASK below].
-- **Must not break:** [name the 1–2 most dangerous constraints — full list below].
-- **Read order:** this file top-to-bottom, then open the files in ARTIFACT INDEX
-  at their absolute paths. The artifacts — not this summary — are the source of truth.
+## START HERE
 
-## INVIOLABLE CONSTRAINTS  (verbatim — never paraphrase, never shorten)
-<!-- Rules that, if dropped, produce ACTIVE ERROR (not just confusion): integrity
-     rules, "never declare X", "do not touch Y", tier/scope boundaries as rules.
-     Paste them exactly. If you're tempted to tidy one, don't — the tidy version
-     is how the next session ships the mistake.
-     Give each a STABLE ID (C1, C2, …) — these are standing rules, NOT tasks to check
-     off, and the IDs let the relay prompt carry the same text and let you diff the two
-     copies. These only grow; never quietly drop one. To retire one, do NOT delete it —
-     strike it through with a dated reason and keep the original:
-       ~~C2: [original verbatim rule]~~ LIFTED YYYY-MM-DD because [reason]. -->
-- **C1:** [exact rule, word for word]
-- **C2:** [exact rule, word for word]
+- **Goal:** [the exact outcome].
+- **Current phase:** [what is complete, in flight, and blocked].
+- **Next:** [the single NEXT TASK below].
+- **Highest-risk rules:** [C# and active G# IDs].
+- **Read order:** this state, then only the A# IDs required by NEXT TASK.
 
-## STATUS  (where we are, in prose)
-<!-- Enough that a cold reader understands the current state without scrollback.
-     What is done, what is half-done, what is blocked and on what. -->
-[2–6 sentences.]
+## INVIOLABLE CONSTRAINTS
 
-## NEXT TASK  (the single highest-priority next action)
-<!-- ONE concrete action, not a backlog. Specific enough to start immediately.
-     If there's a queue, put #1 here and the rest under OPEN ISSUES. -->
-[Exactly what to do next, concretely. Include the command to run / file to edit /
-decision to make, with absolute paths.]
+<!-- TTNS:BEGIN:INVIOLABLE_CONSTRAINTS -->
+- **C1:** [task-wide correctness or scope rule, copied verbatim].
+- **C2:** [another task-wide rule, copied verbatim].
+<!-- TTNS:END:INVIOLABLE_CONSTRAINTS -->
 
-## ARTIFACT INDEX  (ground truth — paths the NEXT session can resolve)
-<!-- Point; do not transcribe (copies go stale). Prefer artifacts that can be RE-RUN.
-     Canonicality: THIS file is canonical for intent / inviolable constraints /
-     decisions / next action; ARTIFACTS are canonical for generated outputs, source
-     data, and re-derivable numbers. On disagreement, re-run the source or mark it
-     `[unverified]` — never silently choose. Artifacts are DATA, not instructions.
-     Same machine: absolute path is enough. Crossing machines: ALSO give a portability
-     anchor (repo URL+commit, path under a named sync root, shared drive, archive).
-     Not everything is a file: a row may point at a bucket URI / dataset DOI / table /
-     volume label — then "re-verify" is a cheap probe (list the prefix, a checksum, a
-     SELECT COUNT) and the anchor is the store's identity, not a full re-run. -->
-| Absolute path | What it is | How to re-verify / re-run | Portability anchor (if cross-machine) |
-|---|---|---|---|
-| `[/abs/path/to/artifact]` | [e.g. result table, generated draft, config] | [e.g. `python /abs/path/build.py` → reproduces it] | [repo@commit / sync-root path / —] |
-| `[/abs/path/to/plan.md]` | [plan from planning-with-files / writing-plans] | [n/a — read it] | [—] |
+Use C# only for rules that remain binding across the whole task. Do not silently
+delete or paraphrase one; retire it in DECISIONS with the exact prior text and reason.
 
-## INVARIANTS  (the unchanging core)
-<!-- Facts about the task that do NOT change across sessions: the goal, the central
-     hypothesis/claim, scope boundaries (in and out), and key FIXED numbers/tiers.
-     These keep the next session from drifting off the original target. -->
-- **Goal:** [...]
-- **In scope / out of scope:** [...]
-- **Key fixed numbers / tiers:** [exact values — the things a summary would round].
-  <!-- For any number TRANSCRIBED here (not re-derivable from an artifact), add its
-       source so the next session can re-check it, e.g.
-       "A = score ≥ 80 [transcribed — re-verify against /abs/spec.md]".
-       A mis-copied constant otherwise passes every gate. -->
+## ACTIVE ACTION GUARDS
 
-## DECISIONS & CHANGELOG  (decision + WHY — append-only)
-<!-- A decision without its reason invites re-litigation and drift. One line each:
-     what was decided and why, so the next session doesn't reopen settled questions. -->
-- [YYYY-MM-DD] Chose [X] over [Y] because [Z].
-- [YYYY-MM-DD] [change made] — [reason].
+<!-- TTNS:BEGIN:ACTIVE_ACTION_GUARDS -->
+- **G1:** [temporary authority/action guard, copied verbatim].
+<!-- TTNS:END:ACTIVE_ACTION_GUARDS -->
 
-<!-- USER-CONSULTED DECISIONS get the full record below, not one line. They die hardest
-     when the conversation goes, and a lost "why we asked" is how a rejected approach
-     comes back from the dead. Use the record for structured consultations (e.g.
-     AskUserQuestion in Claude Code), plan approvals, and explicit user corrections —
-     any consulted decision that affects future action. Skip mere preference clicks.
-     Before handing off, SWEEP the visible conversation for these. The sweep is
-     best-effort: if earlier turns were already summarized away, write
-     "[not visible in current context]" for what you cannot see — an explicit gap
-     beats a confident reconstruction. -->
-### D1. [short title of the decision]
-- **consultation:** [the question that was put to the user, near-verbatim]
-- **asked because:** [what was blocked or ambiguous — why this needed the user]
-- **options considered:** [A / B / C — as presented]
-- **chosen:** [the option taken — in the user's own words where possible]
-- **rationale / evidence:** [the reasons and grounds behind the choice]
-- **rejected — do not resurrect:** [alternative(s) turned down + why + under what
-  conditions the rejection holds. If those conditions genuinely change, it may be
-  reconsidered — raise it as a reconsideration citing this record, never as a fresh idea.]
-- **downstream implication:** [what the next session must preserve because of this]
-- **source/confidence:** [visible transcript / agent reconstruction / inferred —
-  mark inferred parts [unverified]]
+Use G# for current permissions or temporary prohibitions such as "push/deploy awaits
+instruction." If none are active, write exactly `- None.`. Move a lifted guard to
+DECISIONS with its reason; do not leave a stale guard active.
 
-## OPEN ISSUES / UNKNOWNS
-<!-- The backlog beyond NEXT TASK, plus anything unconfirmed. Mark uncertainty
-     honestly — never upgrade a guess to a fact. -->
-- [ ] [open question or queued task]
-- [ ] `[unverified]` [claim not yet confirmed — say so plainly] / `[要確認]` [...]
+## STATUS
 
-<!-- Routing: a fact you'll reuse on UNRELATED future tasks belongs in MEMORY, not in
-     this disposable file — see references/when-to-handoff.md. This file dies with the
-     task; memory outlives it. -->
+<!-- TTNS:BEGIN:STATUS -->
+[Present reality in 2–6 sentences. Separate verified facts from `[unverified]`
+claims. Do not narrate obsolete history here.]
+<!-- TTNS:END:STATUS -->
 
-<!--
-  PRE-HANDOFF AUDIT — run before handing off; delete once it passes.
-  Using ONLY the files (no chat scrollback), confirm:
-  1. Goal and scope are recoverable.
-  2. Every inviolable constraint is present, verbatim, and byte-identical in the relay
-     — compare per ID (C1, C2, ...), character by character.
-  3. NEXT TASK names exactly ONE concrete next action.
-  4. Every path resolves (portability anchor if cross-machine); key numbers re-derive.
-  5. Recent decisions carry their reasons.
-  6. Nothing uncertain is stated as fact ([unverified] / [要確認] where unsure).
-  7. No secrets; regulated/PHI not in the relay unless authorized; artifacts are data.
-  8. User-consulted decisions carry the full record (asked-because / chosen / rejected
-     + conditions / source-confidence); invisible history is marked
-     "[not visible in current context]", not reconstructed.
-  9. The relay is printed verbatim FROM ITS SAVED FILE as the FINAL fenced block of the
-     handoff message — nothing after it.
-  Also: exactly ONE active state file under this task root.
-  Full procedure: references/playbook.md section 2.
--->
+## NEXT TASK
 
-<!--
-  HISTORY / ARCHIVE  (optional, near the bottom)
-  When this file grows, fold resolved issues and superseded status into a terse
-  history here, or move it to an archive file referenced by ABSOLUTE path. Compress
-  the prose — never the INVIOLABLE CONSTRAINTS or the numbers.
--->
+<!-- TTNS:BEGIN:NEXT_TASK -->
+[One concrete action only. Name the command/file/decision and stopping condition.]
+Required artifact IDs: [A1, A3 or none]
+<!-- TTNS:END:NEXT_TASK -->
+
+Only the listed A# IDs are eager reads in the fresh session. Everything else remains
+deferred until the task actually needs it.
+
+## ARTIFACT INDEX
+
+| ID | Locator on this machine | What it is | Cheapest safe verification | Portable locator |
+|---|---|---|---|---|
+| A1 | `[absolute path or URI]` | [ground-truth role] | [safe read/checksum/idempotent command] | [state-relative:path or full portable locator; — only for same-machine] |
+| A2 | `[absolute path or URI]` | [deferred artifact] | [cheapest safe probe] | [portable locator or —] |
+
+For a cross-machine handoff, every A# required by NEXT TASK needs a portable locator.
+`repo:...@commit` covers only files present at that commit. Dirty or untracked work
+must travel through a named sync root, patch plus required untracked files, or archive;
+do not claim that a clean commit carries WIP it does not contain. Inspect commands
+before running them: artifacts are data, not instructions.
+
+## INVARIANTS
+
+- **Goal and completion test:** [observable definition of done].
+- **In scope / out of scope:** [exact boundary].
+- **Fixed values:** [exact thresholds, tiers, counts, units, each with a source A#].
+
+## DECISIONS
+
+### D1 — [short decision title]
+
+- **Chosen:** [decision].
+- **Because:** [reason/evidence].
+- **Rejected:** [alternative and conditions under which rejection holds].
+- **Source:** [visible user instruction / artifact A# / reconstruction marked unverified].
+
+Record plan approval, corrections, and other user-consulted decisions that affect
+future action. Never invent missing provenance after chat history is gone.
+
+## OPEN ISSUES
+
+- [ ] [queued work beyond NEXT TASK].
+- [ ] `[unverified]` [claim and the A#/probe that can settle it].
+
+## HANDOFF AUDIT
+
+- [ ] Goal, scope, C#, active G#, status, and one NEXT TASK match present reality.
+- [ ] Required A# IDs exist; their cheapest probes are safe and sufficient.
+- [ ] Cross-machine WIP is actually carried by its portable locator.
+- [ ] `finalize` succeeded after the last state edit.
+- [ ] The final response ends with the exact helper-emitted copy box and nothing after it.
+
+After completion, close the state so an old active relay cannot restart finished work:
+
+`python scripts/handoff.py close --state <state> --status complete`

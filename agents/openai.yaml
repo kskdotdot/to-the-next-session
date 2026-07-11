@@ -1,0 +1,6 @@
+interface:
+  display_name: "To The Next Session"
+  short_description: "Exact cold-session state with a freshness-checked relay"
+  default_prompt: "Use $to-the-next-session to preserve exact state outside /compact and emit the verified saved relay as the final fenced copy box."
+policy:
+  allow_implicit_invocation: true

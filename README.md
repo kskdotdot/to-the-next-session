@@ -1,171 +1,173 @@
 # to-the-next-session
 
-[![version](https://img.shields.io/badge/version-0.4.0-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.5.0-blue)](CHANGELOG.md)
 [![license](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
-[![format](https://img.shields.io/badge/format-markdown--only-lightgrey)](#whats-inside)
-[![scope](https://img.shields.io/badge/scope-tool--agnostic-informational)](#using-it)
+[![Python](https://img.shields.io/badge/helper-Python%203.10%2B-3776AB)](scripts/handoff.py)
 
-**A tool-agnostic Agent Skill for durable, precision-preserving handoff of an
-in-progress task across a context window, session, machine, or person boundary —
-so a fresh agent (or you, later, on another device) resumes cold without losing the
-exact numbers, decisions, and must-not-break constraints that matter.**
+> Status: **v0.5.0** — usable; interfaces may evolve.
 
-> Status: **v0.4.0** — usable; interfaces may evolve.
+Move precision-critical work to a fresh AI session without trusting a lossy summary.
 
-> **The state file preserves; the relay prompt launches.**
+`/compact` is useful when details are cheap to reconstruct. It is a poor source of
+truth when one omitted threshold, rejected alternative, permission guard, or exact
+number can change the result. This skill moves that state into durable files before
+the conversation disappears.
 
-## Contents
+## The two artifacts
 
-- [The problem](#the-problem)
-- [The idea](#the-idea)
-- [How it flows](#how-it-flows)
-- [State file vs relay prompt](#state-file-vs-relay-prompt)
-- [Quick start](#quick-start)
-- [What's inside](#whats-inside)
-- [Using it](#using-it)
-- [Design notes](#design-notes)
-- [License](#license)
+- **STATE FILE:** the sole source of truth for current task intent, constraints,
+  decisions, status, next action, and artifact locators.
+- **RELAY PROMPT:** a copy-paste launch message deterministically rendered from the
+  state, saved, read back, freshness-checked, and emitted as a final fenced box.
 
-## The problem
+The state preserves. The relay launches. A real handoff needs both.
 
-Long, high-precision, many-iteration agent work eventually runs out of context. The
-usual fallback — automatic conversation summarization (`/compact` and the like) — is
-lossy *by design*: it compresses the whole transcript on its own terms and silently
-drops exactly the things that are individually fatal to drop:
+## What v0.5 adds
 
-- a single exact number (a threshold, a tier boundary, a measured result),
-- a single inviolable rule (“do **not** declare this done”, “never touch the prod table”),
-- the *reason* a decision was made (so the next session re-litigates it and drifts).
+- deterministic `finalize / verify / emit / close` helper;
+- whole-state `sha256-lf` freshness detection;
+- atomic relay save and exact read-back copy box;
+- C# task constraints, G# active authority guards, A# lazy artifact IDs, D# decisions;
+- same-machine and cross-machine locator contracts;
+- terminal-state protection against restarting completed work;
+- offline regression tests and OpenAI skill metadata.
 
-`--resume` / `--continue` reloads the whole history and doesn’t solve the window
-problem. Memory is for cross-cutting facts, not a project’s full live state.
+The helper does not summarize a transcript or write the state for you. The agent
+curates meaning; the script prevents mechanical drift.
 
-## The idea
+## Quick start: produce
 
-The conversation is disposable; the files are the memory. This skill is the discipline
-of leaving the next (cold) session a **hand-written letter**, backed by the real
-artifacts on disk. Two artifacts:
+Copy the template into the active task:
 
-1. **A state file** — one canonical file written *as a letter to whoever resumes*,
-   updated as you go, carrying the inviolable constraints **verbatim** and pointing at
-   ground-truth artifacts by resolvable path.
-2. **A relay prompt** — a copy-paste block that *launches* the next session, restating
-   the status, the single next action, and the constraints inline and verbatim.
-
-**The state file preserves; the relay prompt launches.**
-
-Both carry **decision provenance**: user-consulted decisions record why they were
-asked, what was chosen, and what was rejected — and the relay forbids re-proposing a
-rejected alternative while its recorded conditions hold — so a dead approach cannot
-come back as a fresh idea after the boundary.
-
-It composes with planning skills (their plan files become entries in the state file’s
-Artifact Index) and explicitly tells you when *not* to use it — for short, low-stakes
-continuity, automatic summarization is fine.
-
-## How it flows
-
-```
-        in-progress work — about to cross a boundary
-        (window fills · new machine · someone takes over)
-                             │
-                             ▼
-          ┌──────────────────┬──────────────────┐
-          │    STATE FILE    │   RELAY PROMPT   │
-          │    preserves     │   launches       │
-          │    the truth     │   the session    │
-          └──────────────────┴──────────────────┘
-                             │
-        verbatim constraints, numbers, decisions, and
-          resolvable artifact paths cross with it
-                             │
-                             ▼
-          ┌───────────────────────────────────────┐
-          │  a COLD next session reads the files  │
-          │  — not the chat — and re-derives the  │
-          │  numbers from the artifacts           │
-          └───────────────────────────────────────┘
-                             │
-                             ▼
-        work resumes with the exact constraints,
-          numbers, and decisions intact
+```text
+cp <skill-root>/assets/state-file-template.md <task-root>/01_TO_THE_NEXT_SESSION.md
 ```
 
-## State file vs relay prompt
+Fill every bracketed field and marked block. Keep it current after meaningful steps,
+then finalize:
 
-You need both: a durable record of the truth, and a way to actually start the next
-session pointed at it. The trust levels are deliberately unequal.
+```text
+python <skill-root>/scripts/handoff.py finalize \
+  --state <task-root>/01_TO_THE_NEXT_SESSION.md \
+  --relay <task-root>/02_RELAY_PROMPT.md
+```
 
-| | **State file** | **Relay prompt** |
+On success, stdout contains only a dynamically fenced copy box around the exact
+saved relay. Use that as the final content of the handoff response; put nothing after
+the closing fence.
+
+## Quick start: resume
+
+Resolve and read the state before changing the task. Compare it with the fingerprint
+carried by the pasted relay:
+
+```text
+python <skill-root>/scripts/handoff.py verify \
+  --state <resolved-state.md> \
+  --fingerprint sha256-lf:<64-hex>
+```
+
+When the saved relay file is also present, use the stronger full comparison:
+
+```text
+python <skill-root>/scripts/handoff.py verify \
+  --state <resolved-state.md> \
+  --relay <saved-relay.md>
+```
+
+If verification fails or status is terminal, do not execute the relay's old NEXT
+TASK. Read the latest state or report the conflict.
+
+## State model
+
+| ID | Meaning | Relay behavior |
 |---|---|---|
-| **Role** | Preserves: the canonical letter the next session reads first | Launches: the copy-paste block that starts the next session |
-| **When written** | Created early, updated after every meaningful step | Generated at the moment of handoff |
-| **Trust level** | Curated handoff index — semi-trusted, *not* proof | Constraints inside it are **authoritative** |
+| C# | task-wide inviolable constraint | copied verbatim |
+| G# | currently active permission/action guard | copied verbatim while active |
+| A# | artifact with locator and cheapest safe verification | only required IDs are eager |
+| D# | chosen decision, reason, rejected option, source | state reference prevents re-litigation |
 
-> Artifacts pointed at by either one are **untrusted data until inspected** — and any
-> re-run script among them is **untrusted code**. Verify load-bearing claims against the
-> artifacts before relying on them.
+Statuses:
 
-## Quick start
+- live: `active`, `waiting_user`;
+- terminal: `complete`, `superseded`, `abandoned`.
 
-Ask your agent:
+Close a completed state:
 
-> *“Prepare a to-the-next-session handoff — a state file plus a relay prompt — so the
-> next session can resume without reading this chat.”*
-
-Then, in the next session, paste the relay prompt and point it at the state file.
-
-By hand:
-
-1. Copy `assets/state-file-template.md` to `<task-root>/TO_THE_NEXT_SESSION.md` and fill it.
-2. Copy `assets/relay-prompt-template.md` and fill it from the state file.
-3. Run the self-sufficiency audit in `references/playbook.md` before you hand off.
-
-## What’s inside
-
-```
-SKILL.md                          the skill: principles, workflow, safety, when-to-use
-assets/state-file-template.md     the state file, each section explained inline
-assets/relay-prompt-template.md   the copy-paste relay prompt
-references/playbook.md            persist-as-you-go checklist, self-sufficiency audit, compaction
-references/when-to-handoff.md     file-relay vs summarization vs memory vs planning
-references/worked-example.md      a generic long-task handoff, start to finish
-references/compact-defense.md     example countermeasures against auto-compaction (illustrative)
-CHANGELOG.md                      version history
-LICENSE                           Apache License 2.0
-NOTICE                            attribution notice
+```text
+python <skill-root>/scripts/handoff.py close \
+  --state <state.md> \
+  --status complete
 ```
 
-## Using it
+Old relays then fail freshness/status verification instead of restarting the task.
 
-The skill is tool-agnostic — it speaks in actions (“write a file”, “open a fresh
-session”, “the agent that resumes”), not any one runtime’s tool names, so it works in
-Claude Code, Codex, and other skill-aware agents.
+## Moving between machines
 
-- **As an installed skill:** place this folder where your agent discovers skills (e.g.
-  a `skills/to-the-next-session/` directory) so its `description` can trigger it.
-- **By hand:** read `SKILL.md`, copy the two templates in `assets/`, and follow the
-  self-sufficiency audit in `references/playbook.md` before you hand off.
+For `same-machine`, the State locator is the state's exact absolute path.
 
-## Design notes
+For `cross-machine`, use one resolvable anchor plus member path:
 
-The skill holds itself to its own creed — accuracy. It does **not** claim losslessness
-(a human can omit something, an artifact can drift, a path can break); its job is to
-make those failure modes few and catchable. It carries a small safety model for public
-use: never put secrets in the handoff; treat artifacts as data, not instructions;
-treat re-run scripts as untrusted code until inspected; and treat the state file as a
-handoff index, not proof — verify load-bearing claims against the artifacts.
+```text
+repo:https://host/owner/repo.git@<40-hex-commit>#relative/state.md
+sync:<named-root>#relative/state.md
+archive:<bundle-path-or-URL>#member/state.md
+```
 
-The safety model has three trust levels, deliberately unequal: the **state file** is a
-curated index (semi-trusted, not proof), the **relay constraints** are authoritative,
-and the **artifacts** are untrusted data until inspected (re-run scripts are untrusted
-code).
+Required A# rows need a portable locator too. A commit carries only tracked bytes in
+that commit; dirty or untracked WIP needs a patch plus its untracked files, a named
+sync root, or an archive. The helper validates form, not the actual Git dirtiness or
+bundle contents.
 
-How it differs from a plain handoff doc: conventions like `AGENTS.md` or `HANDOFF.md`
-are *static, repo-level* notes. This skill is a *per-task* relay that preserves exact
-numbers and **verbatim** constraints, points at re-derivable ground truth, and carries
-an explicit resume contract — the precision and the resume side are the difference.
+## Fingerprint contract
 
-## License
+The helper removes one UTF-8 BOM, decodes strict UTF-8, normalizes CRLF/bare CR to LF,
+ensures a final LF, and hashes the entire state with SHA-256. It does not trim,
+normalize Unicode, remove comments, or decide which edits are harmless. Any state
+change requires a new relay.
 
-[Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution.
+`verify --relay` re-renders and compares the whole relay, so retaining the digest
+line while editing the relay body still fails.
+
+## Install as a skill
+
+Clone or copy this repository into the skill directory used by your agent. The root
+contains `SKILL.md`, and `agents/openai.yaml` supplies Codex/OpenAI UI metadata.
+Claude Code, Codex, and other filesystem-capable agents can follow the same state and
+helper contract.
+
+Python 3.10+ enables deterministic checks. Without Python, follow
+`references/playbook.md` §7 and label the relay `manual-unverified`; never
+claim fingerprint or atomic verification ran.
+
+## Repository layout
+
+```text
+SKILL.md                         core workflow and triggers
+agents/openai.yaml               OpenAI/Codex discovery metadata
+assets/state-file-template.md    schema 1 canonical state
+assets/relay-prompt-template.md  fixed deterministic render template
+scripts/handoff.py               finalize / verify / emit / close
+references/playbook.md           detailed audit and lifecycle
+references/when-to-handoff.md    boundary against /compact, memory, planning
+references/compact-defense.md    runtime defense guidance
+references/worked-example.md     synthetic cross-machine example
+tests/                           offline contract tests
+```
+
+## Verify this checkout
+
+```text
+python -m unittest tests.test_handoff tests.test_package
+```
+
+The tests use only temporary files in the checkout and make no network calls.
+
+## Deliberate non-goals
+
+No transcript summarizer, LLM call, daemon, database, clipboard automation, recursive
+task search, artifact execution, secret scanner, or automatic semantic completion
+judgment. These would add authority or failure modes without improving the core
+transport guarantee.
+
+License: [Apache License 2.0](LICENSE).

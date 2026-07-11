@@ -1,99 +1,60 @@
-# Compact defense: not losing the race against auto-compaction
+# Compact defense: do not lose the race
 
-> **Illustrative examples — not a supported component of this skill.** This page
-> documents runtime-level countermeasures that pair well with the skill. The snippets
-> are examples to adapt to your own configuration, not installable artifacts shipped or
-> maintained here; hook APIs belong to your runtime and can change. The skill itself is
-> markdown-only and works fully without any of this.
+The primary defense is persist-as-you-go: a current STATE FILE already exists before
+automatic compaction. The public skill ships the state/relay helper, not a runtime
+hook. A host configuration repository may separately integrate deterministic hooks;
+for example, sync-config-claudecode maintains `scripts/compact-defense.py` for
+Claude Code. Codex and runtimes without equivalent hooks degrade to persistent files
+and manual threshold awareness.
 
-## The race
+## Defense layers
 
-This skill assumes you get to hand off *deliberately*. But runtimes with automatic
-context compaction (e.g. Claude Code's auto-compact) fire on their own schedule —
-typically somewhere around 75–85% context usage. When auto-compaction wins the race,
-the exact failure this skill exists to prevent happens anyway: decisions are
-mishandled, phases get confused, and rejected approaches come back as fresh ideas,
-because the summary kept the outcome and dropped the *why*.
+1. Persist STATUS, NEXT TASK, A#, and D# after meaningful work.
+2. Warn while enough context remains to finalize a relay.
+3. Use a fail-open pre-compaction hook only for deterministic metadata/notice work.
+4. After compaction, point the session back to a live state file and prefer it over
+   the summary.
 
-Defense in depth, cheapest layer first:
+WHEN a runtime exposes context usage → DO warn at an early local threshold such as
+60% → DONE iff the user or agent still has room to persist and finalize before the
+automatic trigger. The exact trigger is runtime-specific; do not claim a universal
+percentage.
 
-1. **The skill's own discipline.** Persist-as-you-go means the state file is already
-   current whenever compaction hits — the letter is written before the fire. This is
-   the primary defense and needs no automation.
-2. **See it coming.** A context-usage warning (e.g. in a status line) at ~60% leaves
-   room to hand off or compact manually before the automatic trigger fires.
-3. **Pre-compaction hook.** A deterministic, last-moment side effect just before
-   compaction (save a marker/metadata, optionally block an automatic compaction on
-   interactive machines).
-4. **Post-compaction recovery.** Immediately after compaction, re-point the summarized
-   session at ground truth: "a state file exists — trust it over the summary."
+## Claude Code hook constraints
 
-## Example: usage-threshold warning
+Claude Code's `PreCompact` exit code 2 blocks compaction. A missing Python script
+also commonly exits 2, so a brittle hook can strand every session.
 
-If your runtime exposes context usage (Claude Code passes
-`context_window.used_percentage` to status-line commands on stdin), a two-line check
-is enough:
+WHEN installing a PreCompact command → DO catch failures and exit 0 by default →
+DONE iff missing files, invalid input, permission errors, and backup failures cannot
+block compaction.
 
-```python
-pct = data.get("context_window", {}).get("used_percentage", 0)
-if pct >= 60:
-    line += f"  CTX {pct:.0f}% — handoff soon"
-```
+WHEN deliberate blocking is needed on an interactive machine → DO make it a
+per-machine opt-in and emit the runtime's explicit block decision → DONE iff the
+default and unattended-machine behavior remain fail-open.
 
-## Example: pre-compaction hook (Claude Code `PreCompact`) — and the exit-code trap
+Keep pre-compaction work deterministic:
 
-```json
-"hooks": {
-  "PreCompact": [{
-    "matcher": "manual|auto",
-    "hooks": [{ "type": "command", "command": "python <abs-path>/precompact-hook.py" }]
-  }]
-}
-```
+- write small metadata or a timestamp;
+- copy a transcript only under an explicit local opt-in and bounded quota;
+- keep backups off synchronized roots when they may contain sensitive data.
 
-**The trap:** in Claude Code, a `PreCompact` hook that exits with code 2 **blocks the
-compaction**. And `python missing-script.py` exits with code 2. A registered hook whose
-script has been moved or deleted therefore silently blocks *every* compaction. Design
-the command so that no failure mode can produce exit 2 — guard for the script's
-existence, catch every exception, and exit 0 on any error. If you want deliberate
-blocking (force a manual handoff before an automatic compaction on an interactive
-machine), make it an explicit opt-in and emit `{"decision": "block"}` on stdout rather
-than relying on exit codes — and never enable it on a machine that runs unattended,
-where a blocked compaction strands the run.
+Do not ask a shell hook to write the handoff letter, summarize the transcript, or
+call a model. Only the active agent can curate C#/G#/A#/D# correctly.
 
-Keep the hook's job deterministic side effects only: write a timestamp/marker, save
-metadata about what is being compacted, print a notice. Do **not** try to write the
-state file from the hook — a shell script cannot write the letter; only the model can,
-which is why persist-as-you-go (layer 1) is the real defense.
+## Post-compaction recovery
 
-## Example: post-compaction recovery (Claude Code `SessionStart`, matcher `compact`)
+WHEN a compacted session starts → DO scan only the task cwd for recognized state
+names, ignore explicitly terminal states, and inject a short pointer to every live
+candidate → DONE iff the summary cannot silently override a current state and the
+hook does not guess among multiple live tasks.
 
-Stdout from a `SessionStart` hook is injected as context. A short pointer is enough:
+Recognized names include unprefixed and local two-digit forms:
 
-```json
-"hooks": {
-  "SessionStart": [{
-    "matcher": "compact",
-    "hooks": [{ "type": "command", "command": "python <abs-path>/postcompact-note.py" }]
-  }]
-}
-```
+- `TO_THE_NEXT_SESSION*.md`
+- `NN_TO_THE_NEXT_SESSION*.md`
+- `RESUME*.md`
+- `NN_RESUME*.md`
 
-where the script prints something like:
-
-> Compaction just occurred; precision may be lost. If a handoff state file
-> (TO_THE_NEXT_SESSION.md / RESUME.md) exists at the task root, read it now and trust
-> it over the summary. Do not re-propose approaches its DECISIONS section records as
-> rejected.
-
-Keep it under ~80 tokens — it is injected into every post-compaction session, whether
-or not a handoff exists.
-
-## What not to automate
-
-- Do not generate or edit the state file from a hook (deterministic scripts write
-  markers; models write letters).
-- Do not summarize the transcript, or call another model, from inside a hook.
-- Do not default-block automatic compaction fleet-wide; blocking is an interactive-
-  machine opt-in.
-- Do not let any hook failure surface as exit code 2 (see the trap above).
+Legacy files without a Status field remain candidates. Recursive filesystem search is
+outside this hook's job.

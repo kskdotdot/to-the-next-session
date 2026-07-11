@@ -1,159 +1,101 @@
-# Worked example: a long task handed off cleanly
+# Worked example: a cold cross-machine resume
 
-A generic illustration — no real project. The point is to show the *shape* of a good
-handoff: exact numbers preserved, a must-not-break rule carried verbatim, artifacts
-pointed at by absolute path and re-runnable, decisions with reasons, and an honest
-`[unverified]` marker.
+This synthetic example shows the schema; it is not a real project.
 
-## The situation
+## Situation
 
-A multi-day task: clean a messy records dataset, re-tier each record into A/B/C bands
-by a score, and produce a summary report. By the time the context window is filling,
-the cleaning script works, tiers are assigned, the report is half-drafted, and one
-figure is still unconfirmed. The work must continue tomorrow on a different machine.
+A records report is half complete. The exact tier cutoffs and the rule against
+unsourced confirmation are load-bearing. The report draft contains dirty WIP and the
+next session runs on another machine.
 
-Two things would be fatal to lose: the **exact tier cutoffs** (a summary might round
-them) and the rule that **no record may be labeled "confirmed" without a source
-match** (dropping it would silently corrupt the output).
+## State
 
-## The state file (key sections, filled)
+```markdown
+# TO THE NEXT SESSION — records report
 
-```
-# TO THE NEXT SESSION — records re-tiering + report
-
-_Last updated: 2025-03-14 18:40_
+_TTNS schema: 1_
+_Handoff ID: records-report_
+_Status: active_
+_Target: cross-machine_
+_State locator: repo:https://github.com/example/records.git@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa#handoff/01_TO_THE_NEXT_SESSION.md_
+_Last updated: 2026-07-11T18:00:00+09:00_
+_Superseded by: none_
 
 ## START HERE
-- What this is: clean the records set, assign A/B/C tiers by score, write the report.
-- Where we are: cleaning done, tiers assigned, report ~50% drafted.
-- Do next: finish the report's "Tier B" section — see NEXT TASK.
-- Must not break: C1 — never label a record "confirmed" without a source match (full list below).
-- Read order: this file, then the files in ARTIFACT INDEX at their absolute paths.
+- Goal: deliver a reviewable records report.
+- Current phase: tiering verified; report draft is half complete.
+- Next: write the Tier B section.
+- Highest-risk rules: C1, C2, G1.
+- Read order: this state, then A1 and A3 only.
 
 ## INVIOLABLE CONSTRAINTS
+<!-- TTNS:BEGIN:INVIOLABLE_CONSTRAINTS -->
 - **C1:** A record may be labeled "confirmed" ONLY if it has a matching source row. No exceptions.
-- **C2:** Do NOT declare the report "final" — it is a draft until the client review pass.
+- **C2:** Do NOT declare the report final before client review.
+<!-- TTNS:END:INVIOLABLE_CONSTRAINTS -->
+
+## ACTIVE ACTION GUARDS
+<!-- TTNS:BEGIN:ACTIVE_ACTION_GUARDS -->
+- **G1:** Do not publish the report; this handoff authorizes draft editing only.
+<!-- TTNS:END:ACTIVE_ACTION_GUARDS -->
 
 ## STATUS
-Cleaning and tiering are complete and reproducible from the script below. The report
-draft covers Tier A and the intro; Tier B and the summary table remain. One figure
-(Tier C count) is in dispute — see OPEN ISSUES.
+<!-- TTNS:BEGIN:STATUS -->
+Cleaning and tiering are complete. A1 reproduces the counts. A3 contains the current
+dirty draft; Tier B and the summary remain.
+<!-- TTNS:END:STATUS -->
 
 ## NEXT TASK
-Write the "Tier B" section of /home/work/records/report.md, using the counts produced
-by re-running /home/work/records/tier.py (do not hand-type the numbers).
+<!-- TTNS:BEGIN:NEXT_TASK -->
+Use A1 to write only the Tier B section in A3, then stop before publishing.
+Required artifact IDs: A1, A3
+<!-- TTNS:END:NEXT_TASK -->
 
-## ARTIFACT INDEX   (work continues on a different machine -> portability anchors given)
-| Absolute path | What it is | How to re-verify / re-run | Portability anchor |
-|---|---|---|---|
-| /home/work/records/tier.py | cleaning + tiering script | `python /home/work/records/tier.py` regenerates tiers.csv | repo records-cleanup @ a1b2c3d |
-| /home/work/records/tiers.csv | tiered output (ground truth) | produced by tier.py; do not edit by hand | regenerate from tier.py |
-| /home/work/records/report.md | the draft report | read it | repo records-cleanup @ a1b2c3d |
+## ARTIFACT INDEX
+| ID | Locator on this machine | What it is | Cheapest safe verification | Portable locator |
+|---|---|---|---|---|
+| A1 | `/work/records/tiers.csv` | verified tier counts | checksum against manifest | state-relative:data/tiers.csv |
+| A2 | `/work/records/dropped.csv` | deferred audit rows | row count only if disputed | state-relative:data/dropped.csv |
+| A3 | `/work/records/report.md` | dirty report draft | sha256 against bundle manifest | archive:https://example.invalid/records-wip.zip#report.md |
 
 ## INVARIANTS
-- Goal: deliver a draft tier report the client can review.
-- In scope: cleaning, tiering, report. Out of scope: client-facing formatting.
-- Key fixed numbers / tiers: A = score ≥ 80, B = 50–79, C = < 50. (Exact; do not round.)
+- Goal and completion test: a reviewable draft; not final.
+- In scope / out of scope: report prose in; publication out.
+- Fixed values: A ≥ 80, B = 50–79, C < 50; source A1.
 
-## DECISIONS & CHANGELOG
-- 2025-03-13 Chose score-band tiers over quartiles because the client specified fixed cutoffs.
-- 2025-03-14 Dropped 12 rows with no source — kept as /home/work/records/dropped.csv for audit.
+## DECISIONS
+### D1 — unmatched records
+- Chosen: omit them from confirmed counts and retain an audit file.
+- Because: C1 forbids manufacturing a source match.
+- Rejected: imputation while the source extract is unchanged.
+- Source: visible user decision.
 
-### D1. Handling of records with no source row
-- consultation: "12 records have no matching source row — drop them, impute a source, or keep them unlabeled?"
-- asked because: C1 forbids labeling them "confirmed", and the report needs a defensible denominator.
-- options considered: drop with audit file / impute from nearest neighbor / keep unlabeled.
-- chosen: "drop them, keep an audit file" (user's words).
-- rationale / evidence: imputation would manufacture the source matches C1 exists to prevent; the client audits row counts.
-- rejected — do not resurrect: imputing sources — it fabricates exactly what C1 forbids; holds unless the client supplies the missing source extract.
-- downstream implication: report denominators exclude the 12 rows; cite dropped.csv when counts are questioned.
-- source/confidence: visible transcript.
-
-## OPEN ISSUES / UNKNOWNS
-- [ ] `[unverified]` Tier C count shows 41 in tiers.csv but 39 in an earlier note — re-run tier.py to settle before citing it in the report.
+## OPEN ISSUES
+- [ ] Client review remains after this handoff.
 ```
 
-Notice what the file does: the cutoffs are stated **exactly** ("A = score ≥ 80 … do
-not round"), the constraint is **verbatim**, the numbers live in a **re-runnable
-script** rather than being transcribed, the dropped-rows decision carries its **reason
-and an audit artifact**, and the disputed count is honestly flagged `[unverified]`
-with the way to settle it. The user-consulted decision (D1) carries its **full
-record** — why the question was asked, what was rejected and under what conditions —
-so a later session cannot innocently re-propose imputation as a fresh idea.
+The commit locator carries the state and clean A1. A3 uses an archive because its
+dirty bytes are not present in that commit. A2 is deferred and therefore absent from
+the eager relay artifact table.
 
-On Windows the same Artifact Index entry would read, e.g.
-`C:\Users\you\records\tier.py | cleaning + tiering script |
-python C:\Users\you\records\tier.py | repo records-cleanup @ a1b2c3d` — absolute path
-plus the same portability anchor, so it resolves on either OS.
+## Produce
 
-(If a second precision-critical task were active under the same directory, this file
-would be named for its task — e.g. `TO_THE_NEXT_SESSION_records-retier.md` — because the
-rule is one active file per *task*, not per directory.)
-
-## The relay prompt (what gets pasted into the fresh session)
-
-In the actual handoff message this block is printed **last**, read back verbatim from
-the saved relay file — paths and caveats stated before it, nothing after it.
-
-```
-You are resuming an in-progress task. You start cold: the files are the source of
-truth, not memory. Don't reconstruct from a summary — read the real state.
-
-The state file: repo records-cleanup @ a1b2c3d -> TO_THE_NEXT_SESSION.md. On a new
-machine, clone that repo at a1b2c3d first; on the original machine it resolved to
-/home/work/records/TO_THE_NEXT_SESSION.md.
-
-Read first, in order:
-1. The state file above — top to bottom.
-2. Then the files in its ARTIFACT INDEX — on a different machine, clone records-cleanup
-   @ a1b2c3d to materialize the /home/work/records/... paths before opening them.
-
-Where things stand: cleaning and tiering done and reproducible; report ~50% drafted;
-one figure (Tier C count) disputed and marked [unverified].
-
-Your single next action: write the "Tier B" section of /home/work/records/report.md
-using counts from re-running /home/work/records/tier.py (don't hand-type numbers).
-
-Inviolable constraints — obey exactly (same IDs as the state file):
-- C1: A record may be labeled "confirmed" ONLY if it has a matching source row. No exceptions.
-- C2: Do NOT declare the report "final" — it is a draft until the client review pass.
-
-Before you act: confirm you can restate, from the files alone, the goal, both
-constraints, and your next action. Anything marked [unverified] is not yet established
-— settle it before relying on it.
+```text
+python <skill-root>/scripts/handoff.py finalize \
+  --state /work/records/handoff/01_TO_THE_NEXT_SESSION.md \
+  --relay /work/records/handoff/02_RELAY_PROMPT.md
 ```
 
-## What the self-sufficiency audit caught
+The helper saves the relay, verifies the whole-state fingerprint, reads the saved
+bytes back, and writes a dynamically fenced copy box to stdout. That box is the final
+content sent to the next session.
 
-Running the audit before handoff surfaced the Tier C discrepancy (41 vs 39). Rather
-than smooth it over, the author re-ran the script — confirming 41 — and could have
-updated the file to a settled fact. The version above intentionally leaves it
-`[unverified]` to show the honest interim state: the handoff names the conflict and
-the way to resolve it, so the next session can't unknowingly cite the wrong number.
-That is the whole game — the boundary is crossed with the precision, the rules, and
-the open questions all intact.
+## Resume
 
-## A second shape: non-file artifacts and no-filesystem runtimes
+The fresh session resolves the repository and WIP archive, reads the state, and
+checks the fingerprint before editing. It opens A1 and A3 because NEXT TASK requires
+them; it does not preload A2. G1 prevents publication. After writing the Tier B
+section, it updates the same state and finalizes a new relay.
 
-The same discipline survives two cases the first example doesn't show.
-
-**A large or non-file artifact** — a multi-GB model checkpoint, a cloud bucket, a
-database table — is pointed at, never transcribed, and re-running it to "re-derive" is
-infeasible. The Artifact Index row gives a *locator* and a *cheap probe* in place of a
-re-runnable script:
-
-| Locator | What it is | How to re-verify (cheap probe) | Portability anchor |
-|---|---|---|---|
-| `s3://acme-models/run-2025-03-14/model.ckpt` | trained checkpoint (4.2 GB) | `aws s3 ls s3://acme-models/run-2025-03-14/`; sha256 == `9f3c…` | bucket `acme-models`, prefix `run-2025-03-14/` |
-| `bigquery: proj.analytics.tiers` | tiered output table | `SELECT COUNT(*) FROM proj.analytics.tiers` → 41 | dataset `proj.analytics` |
-
-The checksum and the row count are the *settle-on-resume* probe — not a full re-run,
-but enough to catch drift on something you cannot cheaply rebuild.
-
-**A runtime with no writable filesystem** — a pure chat/API surface, a browser-only
-agent — has nowhere to put a state *file*. The discipline is unchanged; only the
-substrate moves: the state file becomes one self-contained block pasted into the relay
-(or a gist / shared-doc URL), and the Artifact Index points by URL + ID instead of by
-path. Verbatim constraints (C1, C2, …), the portability anchors, and the
-self-sufficiency audit all still apply — you are carrying the letter in the message body
-instead of on disk.
+If the producer closes the state as complete before the old relay is pasted, the
+fingerprint/status check fails and the old Tier B action is not executed again.

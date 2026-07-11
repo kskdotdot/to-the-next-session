@@ -3,6 +3,36 @@
 All notable changes to this skill are recorded here. Versions follow the
 `metadata.version` field in `SKILL.md`.
 
+## v0.5.0
+
+Deterministic cold-session transport release.
+
+### Added
+
+- `scripts/handoff.py` with `finalize`, `verify`, `emit`, and
+  `close` commands.
+- Whole-state `sha256-lf` fingerprinting, atomic relay save, read-back verification,
+  dynamic copy-box fencing, stable exit codes, and stale/terminal fail-closed behavior.
+- Schema 1 C#/G#/A#/D# model, required-artifact lazy reads, explicit same/cross-machine
+  locators, and lifecycle statuses.
+- Standard-library contract tests plus `agents/openai.yaml`.
+
+### Changed
+
+- Made the STATE FILE the sole current-state authority. The saved relay is the
+  authoritative text only for the emitted copy box, never for newer task state.
+- Reworked all templates and references around deterministic production and
+  freshness-first resume.
+- Documented dirty/untracked WIP transport and the boundary between helper form
+  validation and human/agent semantic audit.
+
+### Migration
+
+- Existing v0.4 state files remain readable as documents but do not satisfy helper
+  schema 1. Move their current facts into the new state template before running
+  `finalize`.
+- Python remains optional; manual handoff is available as `manual-unverified`.
+
 ## v0.4.0
 
 Decision-provenance and relay-delivery release. Still markdown-only; the core model is
