@@ -1,10 +1,10 @@
 # to-the-next-session
 
-[![version](https://img.shields.io/badge/version-0.5.1-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.6.0-blue)](CHANGELOG.md)
 [![license](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Python](https://img.shields.io/badge/helper-Python%203.10%2B-3776AB)](scripts/handoff.py)
 
-> Status: **v0.5.1** — usable; interfaces may evolve.
+> Status: **v0.6.0** — usable; interfaces may evolve.
 
 Move precision-critical work to a fresh AI session without trusting a lossy summary.
 
@@ -35,6 +35,23 @@ The state preserves. The relay launches. A real handoff needs both.
 The helper does not summarize a transcript or write the state for you. The agent
 curates meaning; the script prevents mechanical drift.
 
+## What v0.6 adds
+
+- State-template placeholders are now reserved `@@TTNS_FILL_<NAME>@@` tokens instead
+  of bracketed sentinels; `finalize` rejects a leftover fill token and a stray
+  reserved `@@TTNS_*@@` token as two distinct errors.
+- The relay prompt is schema 2: it adds a `TTNS:SKILL=` line and a short ack block
+  (Handoff ID, verify result, C#/G# IDs, STATUS, NEXT TASK, Last updated) recited
+  before the first substantive work, as a diagnostic, not proof of compliance.
+  `verify`/`emit` stay backward-compatible with schema 1 relays saved before this
+  release.
+- An emergency low-context path covers the case where too little context remains
+  for the full produce flow; it marks the state `TTNS:LOW_CONTEXT_AUDIT=required`
+  so resume completes the full audit before acting.
+- The standard same-machine produce flow is completable from `SKILL.md` and the
+  state template alone; `references/playbook.md` is now needed only for
+  cross-machine transport, the manual fallback, or close/supersede.
+
 ## Quick start: produce
 
 Copy the template into the active task:
@@ -43,8 +60,8 @@ Copy the template into the active task:
 cp <skill-root>/assets/state-file-template.md <task-root>/01_TO_THE_NEXT_SESSION.md
 ```
 
-Fill every bracketed field and marked block. Keep it current after meaningful steps,
-then finalize:
+Fill every `@@TTNS_FILL_*@@` token and marked block. Keep it current after
+meaningful steps, then finalize:
 
 ```text
 python <skill-root>/scripts/handoff.py finalize \
@@ -127,7 +144,10 @@ normalize Unicode, remove comments, or decide which edits are harmless. Any stat
 change requires a new relay.
 
 `verify --relay` re-renders and compares the whole relay, so retaining the digest
-line while editing the relay body still fails.
+line while editing the relay body still fails. Comparison is schema-aware: a schema
+1 relay (saved before v0.6.0) is compared against the frozen v1 template, and a
+schema 2 relay against the current template; `verify --fingerprint` does not read
+the relay file and is schema-independent.
 
 ## Install as a skill
 
@@ -146,7 +166,8 @@ claim fingerprint or atomic verification ran.
 SKILL.md                         core workflow and triggers
 agents/openai.yaml               OpenAI/Codex discovery metadata
 assets/state-file-template.md    schema 1 canonical state
-assets/relay-prompt-template.md  fixed deterministic render template
+assets/relay-prompt-template.md  fixed deterministic render template (schema 2)
+assets/relay-prompt-template-v1.md  frozen schema-1 template (backward-compat verify only)
 scripts/handoff.py               finalize / verify / emit / close
 references/playbook.md           detailed audit and lifecycle
 references/when-to-handoff.md    boundary against /compact, memory, planning

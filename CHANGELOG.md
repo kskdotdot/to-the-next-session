@@ -3,6 +3,62 @@
 All notable changes to this skill are recorded here. Versions follow the
 `metadata.version` field in `SKILL.md`.
 
+## v0.6.0
+
+Read-cost and continuation-fidelity release. Standard same-machine produce now
+completes from `SKILL.md` and the state template alone.
+
+### Changed
+
+- `assets/state-file-template.md`: every fill-in placeholder is now a reserved
+  `@@TTNS_FILL_<NAME>@@` token instead of a bracketed sentinel; fill guidance moved
+  to adjacent HTML comments. `[unverified]` and other vocabulary/literals (for
+  example `- None.`) are untouched — they are not placeholders. The HANDOFF AUDIT
+  section is promoted to a 6-MUST standard-path checklist (ID uniqueness,
+  STATUS/NEXT TASK alignment, required A#, unverified-vs-fact, no leftover
+  placeholders, finalize+read-back); the full 11-point audit remains in
+  `references/playbook.md` §3 for cross-machine, fallback, and close/supersede.
+- `assets/relay-prompt-template.md` is schema 2: adds a `TTNS:SKILL=` line and an
+  ack-block paragraph (Handoff ID, verify result, C#/G# IDs, STATUS, single NEXT
+  TASK, Last updated) to recite before the first substantive work — a diagnostic
+  recitation, not proof of compliance. `scripts/handoff.py finalize`/`emit` always
+  render schema 2.
+- `scripts/handoff.py verify` is schema-aware: a saved schema-1 relay is compared
+  against the new frozen `assets/relay-prompt-template-v1.md`, a schema-2 relay
+  against the current template; a missing, duplicated, or unrecognized
+  `TTNS:RELAY_SCHEMA` line is an explicit error, never a silent fallback to schema
+  1. `verify --fingerprint` does not read the relay file and is unaffected.
+- `scripts/handoff.py finalize` now rejects a state in two distinct ways: an
+  unfilled `@@TTNS_FILL_*@@` token (named individually) versus any other reserved
+  `@@TTNS_*@@` token outside the fill namespace (a stricter, not narrower, check
+  than the single reject it replaces).
+- `SKILL.md` Produce step 4 now points to the template-embedded HANDOFF AUDIT
+  instead of `references/playbook.md` for the standard same-machine case; a new
+  "Emergency low-context path" section (used only while Gate B is open) fills only
+  C#, active G#, STATUS, NEXT TASK, and required A#, marks
+  `TTNS:LOW_CONTEXT_AUDIT=required`, and skips `references/` reads entirely. Resume
+  now completes the full file-only audit and clears that marker before acting on a
+  low-context-produced state, and recites the ack block before the first
+  substantive work. State semantics add a two-line rule routing a decision-changing
+  failure to D# and an unresolved retryable one to OPEN ISSUES.
+- `references/playbook.md` §3 gains a one-line pointer back to the standard-path
+  checklist; §1 adds the same D#/OPEN ISSUES failure-routing rule; §5 reflects the
+  LOW_CONTEXT_AUDIT marker and ack block.
+
+### Added
+
+- `assets/relay-prompt-template-v1.md`: a byte-for-byte frozen copy of the
+  pre-v0.6.0 relay template (verified against the `a6c6fca` blob by SHA-256),
+  kept only so `verify`/`emit` keep validating relays saved before this release.
+
+### Measured
+
+- Standard produce required reading (`SKILL.md` + state template, 16,077 bytes) is
+  **75.15%** of the v0.5.1 baseline (`SKILL.md` + state template +
+  `references/playbook.md`, 21,392 bytes) — a 24.85% reduction. Bytes are counted
+  on the repository's canonical LF form; a CRLF checkout inflates the three-file
+  baseline more than the two-file result and would report a smaller ratio.
+
 ## v0.5.1
 
 Trigger-narrowing bugfix. No helper, schema, template, or runtime-hook behavior

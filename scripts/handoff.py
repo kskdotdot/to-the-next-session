@@ -49,7 +49,12 @@ TEMPLATE_TOKENS = {
     "@@TTNS_INVIOLABLE_CONSTRAINTS@@",
     "@@TTNS_ACTIVE_ACTION_GUARDS@@",
 }
-RESERVED_TOKEN_RE = re.compile(r"@@TTNS_[A-Z_]+@@")
+# State-template fill-in placeholders: @@TTNS_FILL_<NAME>@@. A leftover one means
+# the producing agent forgot to fill the template.
+FILL_TOKEN_RE = re.compile(r"@@TTNS_FILL_[A-Z0-9_]+@@")
+# Any reserved @@TTNS_*@@ token (fill tokens included). Widened to allow digits so
+# it also matches numbered fill tokens such as @@TTNS_FILL_C1@@.
+RESERVED_TOKEN_RE = re.compile(r"@@TTNS_[A-Z0-9_]+@@")
 TEMPLATE_SENTINELS = (
     "[task name]",
     "[stable-task-slug]",
@@ -284,8 +289,22 @@ def parse_state(path: Path, raw: bytes | None = None) -> ParsedState:
         raw = _read_bytes(path, label="state")
     canonical = canonical_utf8_lf(raw)
     text = canonical.decode("utf-8")
-    if RESERVED_TOKEN_RE.search(text):
-        raise TtnsError(EXIT_STATE_INVALID, "state contains a reserved relay token")
+    # Two-stage reject, kept as broad as a single check would be, split so the
+    # message tells the agent whether it forgot to fill the template (a) or leaked
+    # a reserved render token into state content (b).
+    fill_tokens = sorted(set(FILL_TOKEN_RE.findall(text)))
+    if fill_tokens:
+        raise TtnsError(
+            EXIT_STATE_INVALID,
+            "state still has unfilled placeholder(s): " + ", ".join(fill_tokens),
+        )
+    reserved_tokens = sorted(set(RESERVED_TOKEN_RE.findall(text)))
+    if reserved_tokens:
+        raise TtnsError(
+            EXIT_STATE_INVALID,
+            "state contains reserved @@TTNS_*@@ token(s) outside the fill "
+            "namespace: " + ", ".join(reserved_tokens),
+        )
     folded = text.casefold()
     if any(sentinel in folded for sentinel in TEMPLATE_SENTINELS):
         raise TtnsError(EXIT_STATE_INVALID, "state still contains a template sentinel")
@@ -416,9 +435,11 @@ def parse_state(path: Path, raw: bytes | None = None) -> ParsedState:
     )
 
 
-def load_relay_template(script_path: Path | None = None) -> str:
+def load_relay_template(
+    script_path: Path | None = None, *, filename: str = "relay-prompt-template.md"
+) -> str:
     script = Path(script_path or __file__).resolve()
-    path = script.parent.parent / "assets" / "relay-prompt-template.md"
+    path = script.parent.parent / "assets" / filename
     raw = _read_bytes(path, label="relay template")
     text = canonical_utf8_lf(raw).decode("utf-8")
     begin = "<!-- TTNS:BEGIN:RELAY_TEMPLATE -->"
@@ -431,6 +452,40 @@ def load_relay_template(script_path: Path | None = None) -> str:
     if found != TEMPLATE_TOKENS:
         raise TtnsError(EXIT_INTERNAL, "shipped relay template tokens are invalid")
     return body + "\n"
+
+
+def load_relay_template_v1(script_path: Path | None = None) -> str:
+    """Frozen pre-v0.6.0 relay template body, kept only to verify old saved relays."""
+    return load_relay_template(script_path, filename="relay-prompt-template-v1.md")
+
+
+_SCHEMA_LINE_RE = re.compile(r"(?m)^<!-- TTNS:RELAY_SCHEMA=([^\s]*) -->$")
+
+
+def _relay_schema(relay_text: str) -> str:
+    matches = _SCHEMA_LINE_RE.findall(relay_text)
+    if len(matches) != 1:
+        # Missing/duplicated schema declaration makes the relay unverifiable. That
+        # is a relay-trust problem, not a state-content problem, so it maps to the
+        # same EXIT_RELAY_STALE bucket as a stale/tampered relay, not EXIT_STATE_INVALID.
+        raise TtnsError(
+            EXIT_RELAY_STALE,
+            "saved relay must declare exactly one TTNS:RELAY_SCHEMA",
+        )
+    return matches[0]
+
+
+def load_relay_template_for_schema(
+    schema: str, script_path: Path | None = None
+) -> str:
+    if schema == "2":
+        return load_relay_template(script_path)
+    if schema == "1":
+        return load_relay_template_v1(script_path)
+    # Unrecognized value: same untrustworthy-relay bucket as the count check above.
+    raise TtnsError(
+        EXIT_RELAY_STALE, f"unsupported_schema: TTNS:RELAY_SCHEMA={schema}"
+    )
 
 
 def _required_artifacts(state: ParsedState) -> str:
@@ -546,8 +601,14 @@ def verify_pair(state_path: Path, relay_path: Path) -> bytes:
     if not relay_path.is_file():
         raise TtnsError(EXIT_RELAY_STALE, f"saved relay is missing: {relay_path}")
     first_relay = _read_bytes(relay_path, label="saved relay")
-    expected = render_relay(state, load_relay_template(), relay_path)
-    if canonical_utf8_lf(first_relay) != expected:
+    canonical_relay = canonical_utf8_lf(first_relay)
+    # verify --relay is schema-aware: schema 1 compares against the frozen v1
+    # template so old saved relays keep verifying; schema 2 compares against the
+    # current template. verify --fingerprint never reaches this path (schema-independent).
+    schema = _relay_schema(canonical_relay.decode("utf-8"))
+    template = load_relay_template_for_schema(schema)
+    expected = render_relay(state, template, relay_path)
+    if canonical_relay != expected:
         raise TtnsError(EXIT_RELAY_STALE, "relay is stale or was edited")
     if _read_bytes(state_path, label="state") != first_state:
         raise TtnsError(EXIT_RELAY_STALE, "state changed during verify")

@@ -60,3 +60,7 @@ Recognized names include unprefixed and local two-digit forms:
 
 Legacy files without a Status field remain candidates. Recursive filesystem search is
 outside this hook's job.
+
+The pointer may sanitize and echo the state's leading `_Status:` and `_Last
+updated:` values for display. It must not use them to compute elapsed time, decide
+freshness, skip injection, or block compaction.

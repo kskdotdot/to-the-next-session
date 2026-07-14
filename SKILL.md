@@ -15,7 +15,7 @@ description: >-
   activation, keep the non-terminal state current through waiting_user, resume, and
   close; never create speculative state.
 metadata:
-  version: 0.5.1
+  version: 0.6.0
 ---
 
 # To The Next Session
@@ -39,13 +39,15 @@ The state preserves; the relay launches. Always produce both for a real handoff.
 
 1. Copy `assets/state-file-template.md` to the task root. Prefer a local naming
    convention such as `NN_TO_THE_NEXT_SESSION.md`.
-2. Fill every header and marked block. Keep STATUS, NEXT TASK, ARTIFACT INDEX, and
-   DECISIONS current after each meaningful step rather than reconstructing them at
-   the end.
+2. Fill every `@@TTNS_FILL_*@@` token and marked block. Keep STATUS, NEXT TASK,
+   ARTIFACT INDEX, and DECISIONS current after each meaningful step rather than
+   reconstructing them at the end.
 3. Sweep the visible conversation for approvals, corrections, and user-consulted
    decisions. Record what was chosen, why, what was rejected, and the honest source.
-4. Run the file-only audit in `references/playbook.md`. Fix the file, not the
-   disappearing conversation.
+4. Run the template-embedded HANDOFF AUDIT (6 MUST) at the bottom of the state file.
+   Fix the file, not the disappearing conversation. For cross-machine transport, the
+   manual fallback, or closing/superseding a state, use the full audit and lifecycle
+   detail in `references/playbook.md`.
 5. Finalize deterministically:
 
    `python <skill-root>/scripts/handoff.py finalize --state <state.md> --relay <relay.md>`
@@ -53,15 +55,23 @@ The state preserves; the relay launches. Always produce both for a real handoff.
 6. Use the helper stdout as the final copy-paste box without editing it or adding
    text after it.
 
-`finalize` validates the mechanical schema, copies marked C#/G#/STATUS/NEXT
-blocks without rewriting, hashes the entire normalized state, atomically saves the
-relay, reads it back, verifies it, and emits a fence longer than any backtick run
-inside the relay. It does not decide whether the prose is sufficient; that remains
-the producing agent's audit.
+`finalize` validates the state, copies marked C#/G#/STATUS/NEXT blocks verbatim,
+atomically saves and verifies the relay, and emits it in a fence longer than any
+backtick run inside it. It does not decide whether the prose is sufficient; that
+remains the producing agent's audit.
 
-Fill every shipped bracketed sentinel. Do not place reserved `@@TTNS_*@@` relay
-template tokens in state content; finalize rejects them rather than risk rewriting a
-verbatim C#/G# block.
+Fill every shipped `@@TTNS_FILL_*@@` token; finalize rejects a state with any
+leftover fill token (named individually) or with any other reserved `@@TTNS_*@@`
+token, each as a distinct error, rather than risk rewriting a verbatim C#/G# block.
+
+## Emergency low-context path
+
+Use only when Gate B (imminent compaction) is open and too little context remains
+for the full flow above. Copy the state template; fill only C#, active G#, STATUS,
+NEXT TASK, and every required A# — never `[unverified]` in these — and skip deferred
+A# detail, D#, and other prose. Add a fixed OPEN ISSUES line
+`TTNS:LOW_CONTEXT_AUDIT=required`, then finalize. Do not open any `references/` file
+on this path.
 
 ## Resume a handoff
 
@@ -76,11 +86,20 @@ Before any task mutation:
 
 4. If verification fails, status is terminal, or a newer state exists, do not run
    the relay's old NEXT TASK. Read the latest state or report the conflict.
-5. If status is `waiting_user`, perform no task mutation until the named input
+5. If the state carries `TTNS:LOW_CONTEXT_AUDIT=required`, complete the full
+   file-only audit in `references/playbook.md` §3 before acting, then change that
+   line to `TTNS:LOW_CONTEXT_AUDIT=completed`.
+6. If status is `waiting_user`, perform no task mutation until the named input
    arrives. If `active`, read only the A# IDs listed in NEXT TASK, run the one
    stated action, then persist the new state.
-6. Keep updating the same state file. Re-finalize after every state change before
+7. Keep updating the same state file. Re-finalize after every state change before
    another boundary.
+
+Before the first substantive work, recite one block: Handoff ID, verify result (or
+`not_run: <reason>` if verification could not run), the C# and G# ID list (IDs only,
+not the body text), STATUS in one line, the single NEXT TASK, and the state's Last
+updated. This is a diagnostic recitation, not proof of compliance. Read-only
+investigation and emergency repair may proceed before it.
 
 For same-machine resume with the saved relay still present, run the stronger full
 comparison:
@@ -98,6 +117,10 @@ comparison:
   entries needed now, so a cold session does not waste context preloading everything.
 - **D# — DECISIONS:** chosen option, because, rejected option with its holding
   conditions, and source. This prevents rejected ideas returning after /compact.
+
+A failure that changed a decision belongs in D# (failure condition, what was
+observed, and the retry condition, briefly); an unresolved, retryable failure
+belongs in OPEN ISSUES. A bare "X failed" is not a valid record in either place.
 
 Do not use C# as a backlog, G# as a permanent policy store, A# as proof that an
 artifact is safe, or D# without a reason.

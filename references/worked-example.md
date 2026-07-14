@@ -93,9 +93,11 @@ content sent to the next session.
 ## Resume
 
 The fresh session resolves the repository and WIP archive, reads the state, and
-checks the fingerprint before editing. It opens A1 and A3 because NEXT TASK requires
-them; it does not preload A2. G1 prevents publication. After writing the Tier B
-section, it updates the same state and finalizes a new relay.
+checks the fingerprint before editing, reciting the ack block (Handoff ID, verify
+result, C#/G# IDs, STATUS, NEXT TASK, Last updated) as a diagnostic, not proof of
+compliance. It opens A1 and A3 because NEXT TASK requires them; it does not preload
+A2. G1 prevents publication. After writing the Tier B section, it updates the same
+state and finalizes a new relay.
 
 If the producer closes the state as complete before the old relay is pasted, the
 fingerprint/status check fails and the old Tier B action is not executed again.

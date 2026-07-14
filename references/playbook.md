@@ -25,6 +25,12 @@ record a D# entry from the visible conversation → DONE iff the next session ca
 why the choice was asked, what won, and what must not be resurrected. Mark missing
 history `[not visible in current context]`; do not reconstruct provenance as fact.
 
+WHEN a step fails or an approach is abandoned → DO route it by consequence: record a
+D# if the failure changed a decision (failure condition, what was observed, and the
+retry condition, briefly), otherwise log it in OPEN ISSUES as unresolved and
+retryable → DONE iff no failure is dropped as a bare "X failed" without one of those
+two homes.
+
 ## 2. Choose a transport target
 
 ### Same machine
@@ -61,6 +67,10 @@ The helper checks locator grammar and required A# membership. It intentionally d
 not inspect Git status, open an artifact, contact a remote, or construct a bundle.
 
 ## 3. File-only pre-handoff audit
+
+Standard same-machine produce is covered by the template-embedded HANDOFF AUDIT
+(6 MUST) in `assets/state-file-template.md`. Use this fuller section for
+cross-machine transport, the manual fallback, close/supersede, or a deeper review.
 
 Ignore the chat scrollback during this audit. Use only the state and artifacts.
 
@@ -133,6 +143,16 @@ Apply status before NEXT TASK:
 Open only required A# entries first. Resolve a cross-machine anchor before attempting
 the producing-machine path. Run the cheapest safe verification for a load-bearing A#
 instead of automatically rerunning an expensive or mutating pipeline.
+
+WHEN the state carries `TTNS:LOW_CONTEXT_AUDIT=required` → DO complete the full
+file-only audit in §3 before acting, then change that line to
+`TTNS:LOW_CONTEXT_AUDIT=completed` → DONE iff the marker reads `completed` before the
+one stated action runs.
+
+Before the first substantive work, recite one block — Handoff ID, verify result (or
+`not_run: <reason>`), the C#/G# ID list, STATUS in one line, the single NEXT TASK,
+and Last updated — as a diagnostic recitation, not proof of compliance. Read-only
+investigation and emergency repair may proceed before it.
 
 WHEN the action advances → DO persist the same state file before another action →
 DONE iff STATUS, NEXT TASK, A#, D#, START HERE, and Last updated again agree.
