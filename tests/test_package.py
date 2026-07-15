@@ -17,13 +17,23 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 HELPER = ROOT / "scripts" / "handoff.py"
 
-# Pinned SHA-256 of assets/relay-prompt-template-v1.md, computed once from the
-# pre-v0.6.0 blob (`git show a6c6fca:assets/relay-prompt-template.md | sha256sum`).
-# This is the machine proof (F7) that the v1 frozen asset is byte-identical to the
-# relay template as it existed immediately before this refactor.
+# Pinned SHA-256 digests of the frozen relay template assets, computed over
+# canonical_utf8_lf() bytes (the runtime contract: load_relay_template always
+# canonicalizes before use, so a CRLF working tree — e.g. core.autocrlf=true on
+# Windows — must not break the guarantee). The guarantee is therefore
+# "canonical UTF-8/LF-identical", not raw byte-identical.
+# v1: pre-v0.6.0 blob (`git show a6c6fca:assets/relay-prompt-template.md`).
 RELAY_V1_FROZEN_SHA256 = (
     "94076c029c21dd4a9e68174e0a61f2581f5510761865ac118b37cba285956ab9"
 )
+# v2: the v0.6.0 relay template file frozen at the v0.7.0 schema bump.
+RELAY_V2_FROZEN_SHA256 = (
+    "4cca481c2dbf970788a40e33585cb3c3a63958550e10412e4040d8ab9e90a1c2"
+)
+FROZEN_RELAY_TEMPLATES = {
+    "1": ("relay-prompt-template-v1.md", RELAY_V1_FROZEN_SHA256),
+    "2": ("relay-prompt-template-v2.md", RELAY_V2_FROZEN_SHA256),
+}
 
 # Pinned fingerprint for a fixed sample. canonical_utf8_lf/state_fingerprint were not
 # touched by the v0.6.0 change; this guards against silent future drift in either.
@@ -52,10 +62,10 @@ def load_helper():
 class PublicPackageContractTests(unittest.TestCase):
     def test_release_version_and_public_entrypoints(self):
         skill = read("SKILL.md")
-        self.assertRegex(skill, r"(?m)^  version: 0\.6\.0$")
+        self.assertRegex(skill, r"(?m)^  version: 0\.7\.0$")
         readme = read("README.md")
-        self.assertIn("version-0.6.0", readme)
-        self.assertIn("Status: **v0.6.0**", readme)
+        self.assertIn("version-0.7.0", readme)
+        self.assertIn("Status: **v0.7.0**", readme)
         self.assertIn("scripts/handoff.py", readme)
         self.assertNotIn("markdown-only", readme.casefold())
 
@@ -73,25 +83,34 @@ class PublicPackageContractTests(unittest.TestCase):
         self.assertNotIn("saved relay file is canonical", skill.casefold())
 
     def test_state_and_relay_schema_tokens_are_complete(self):
-        state = read("assets/state-file-template.md")
-        for marker in (
-            "INVIOLABLE_CONSTRAINTS",
-            "ACTIVE_ACTION_GUARDS",
-            "STATUS",
-            "NEXT_TASK",
+        for template in (
+            "assets/state-file-template.md",
+            "assets/state-file-template-low-context.md",
         ):
-            self.assertEqual(state.count(f"TTNS:BEGIN:{marker}"), 1)
-            self.assertEqual(state.count(f"TTNS:END:{marker}"), 1)
-        self.assertIn("Required artifact IDs:", state)
-        self.assertIn(
-            "| ID | Locator on this machine | What it is | "
-            "Cheapest safe verification | Portable locator |",
-            state,
-        )
+            with self.subTest(template=template):
+                state = read(template)
+                self.assertRegex(state, r"(?m)^_TTNS schema: 2_$")
+                for marker in (
+                    "ORIENTATION",
+                    "INVIOLABLE_CONSTRAINTS",
+                    "ACTIVE_ACTION_GUARDS",
+                    "STATUS",
+                    "NEXT_TASK",
+                ):
+                    self.assertEqual(state.count(f"TTNS:BEGIN:{marker}"), 1)
+                    self.assertEqual(state.count(f"TTNS:END:{marker}"), 1)
+                self.assertIn("Required artifact IDs:", state)
+                self.assertIn(
+                    "| ID | Locator on this machine | What it is | "
+                    "Cheapest safe verification | Portable locator |",
+                    state,
+                )
 
         relay = read("assets/relay-prompt-template.md")
+        self.assertIn("<!-- TTNS:RELAY_SCHEMA=3 -->", relay)
         tokens = set(re.findall(r"@@TTNS_[A-Z_]+@@", relay))
-        self.assertEqual(len(tokens), 13)
+        self.assertEqual(len(tokens), 14)
+        self.assertIn("@@TTNS_ORIENTATION@@", tokens)
         for token in tokens:
             self.assertGreaterEqual(relay.count(token), 1)
 
@@ -123,9 +142,27 @@ class FillTokenAndRelaySchemaTests(unittest.TestCase):
         self.artifact = self.root / "artifact.txt"
         self.artifact.write_text("ground truth\n", encoding="utf-8")
 
+    def orientation(
+        self,
+        *,
+        goal="Ship the fixture change end-to-end",
+        done_when="All fixture tests pass and the relay round-trips",
+        phase="Implementation is in flight",
+        waiting="none",
+    ):
+        return (
+            "<!-- TTNS:BEGIN:ORIENTATION -->\n"
+            f"- **Goal:** {goal}\n"
+            f"- **Done when:** {done_when}\n"
+            f"- **Current phase:** {phase}\n"
+            f"- **Waiting on:** {waiting}\n"
+            "<!-- TTNS:END:ORIENTATION -->"
+        )
+
     def state_text(
         self,
         *,
+        schema="1",
         status="active",
         target="same-machine",
         state_locator=None,
@@ -134,9 +171,17 @@ class FillTokenAndRelaySchemaTests(unittest.TestCase):
         constraints=None,
         guards=None,
         next_task=None,
+        start_here=None,
     ):
         if state_locator is None:
             state_locator = str(self.state)
+        if start_here is None:
+            if schema == "2":
+                start_here = self.orientation()
+            else:
+                start_here = (
+                    "- Resume from the canonical state, never from `/compact`."
+                )
         if constraints is None:
             constraints = (
                 "- **C1:** Keep the threshold exactly >= 80.\n"
@@ -154,7 +199,7 @@ class FillTokenAndRelaySchemaTests(unittest.TestCase):
             )
         return f"""# TO THE NEXT SESSION — fixture
 
-_TTNS schema: 1_
+_TTNS schema: {schema}_
 _Handoff ID: pkgtest-fixture_
 _Status: {status}_
 _Target: {target}_
@@ -163,7 +208,7 @@ _Last updated: 2026-07-14T12:00:00+09:00_
 _Superseded by: {superseded_by}_
 
 ## START HERE
-- Resume from the canonical state, never from `/compact`.
+{start_here}
 
 ## INVIOLABLE CONSTRAINTS
 <!-- TTNS:BEGIN:INVIOLABLE_CONSTRAINTS -->
@@ -250,19 +295,27 @@ One phase is complete; the next phase has not started.
         self.assertIn("@@TTNS_STATUS_TEXT@@", stderr)
         self.assertNotIn("unfilled", stderr.lower())
 
-    # 3. Shipped template: every placeholder matches the FILL grammar; vocabulary
+    # 3. Shipped templates: every placeholder matches the FILL grammar; vocabulary
     # (`[unverified]`) and legitimate literals (`- None.`) are untouched.
     def test_shipped_state_template_placeholders_all_match_fill_grammar(self):
-        template = (
-            ROOT / "assets" / "state-file-template.md"
-        ).read_text(encoding="utf-8")
-        all_reserved = re.findall(r"@@TTNS_[A-Z0-9_]+@@", template)
-        self.assertTrue(all_reserved, "expected at least one @@TTNS_FILL_*@@ token")
-        for token in all_reserved:
-            self.assertRegex(token, r"^@@TTNS_FILL_[A-Z0-9_]+@@$")
-        self.assertIn("`[unverified]`", template)
-        self.assertNotIn("@@TTNS_FILL_UNVERIFIED@@", template)
-        self.assertIn("- None.", template)
+        for name in (
+            "state-file-template.md",
+            "state-file-template-low-context.md",
+        ):
+            with self.subTest(template=name):
+                template = (ROOT / "assets" / name).read_text(encoding="utf-8")
+                all_reserved = re.findall(r"@@TTNS_[A-Z0-9_]+@@", template)
+                self.assertTrue(
+                    all_reserved, "expected at least one @@TTNS_FILL_*@@ token"
+                )
+                for token in all_reserved:
+                    self.assertRegex(token, r"^@@TTNS_FILL_[A-Z0-9_]+@@$")
+        standard = (ROOT / "assets" / "state-file-template.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("`[unverified]`", standard)
+        self.assertNotIn("@@TTNS_FILL_UNVERIFIED@@", standard)
+        self.assertIn("- None.", standard)
 
     # 4. A saved schema-1 relay, rendered from the frozen v1 template, still
     # verifies and emits correctly (backward-compat verify).
@@ -347,11 +400,35 @@ One phase is complete; the next phase has not started.
             helper.state_fingerprint(FINGERPRINT_SAMPLE), FINGERPRINT_PIN
         )
 
-    # 8. The frozen v1 asset's bytes match the pinned pre-refactor blob hash.
-    def test_v1_frozen_asset_matches_pinned_pre_refactor_blob_hash(self):
-        v1_path = ROOT / "assets" / "relay-prompt-template-v1.md"
-        digest = hashlib.sha256(v1_path.read_bytes()).hexdigest()
-        self.assertEqual(digest, RELAY_V1_FROZEN_SHA256)
+    # 8. Frozen relay assets: canonical UTF-8/LF hash matches the pin and each
+    # asset declares its own schema. Hashing canonicalized bytes matches the
+    # runtime contract (load happens after canonical_utf8_lf), so a CRLF working
+    # tree cannot produce a false failure.
+    def test_frozen_relay_assets_match_pinned_canonical_lf_hashes(self):
+        helper = load_helper()
+        for schema, (name, pin) in FROZEN_RELAY_TEMPLATES.items():
+            with self.subTest(schema=schema):
+                raw = (ROOT / "assets" / name).read_bytes()
+                digest = hashlib.sha256(helper.canonical_utf8_lf(raw)).hexdigest()
+                self.assertEqual(digest, pin)
+                self.assertIn(
+                    f"<!-- TTNS:RELAY_SCHEMA={schema} -->",
+                    raw.decode("utf-8"),
+                )
+
+    # 9. The v3 render (schema-2 state) carries the verbatim orientation block
+    # and the extended recitation ack.
+    def test_v3_relay_carries_orientation_and_extended_ack(self):
+        self.write_state(schema="2")
+        result = self.finalize()
+        self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
+        relay = self.relay.read_text(encoding="utf-8")
+        self.assertIn("<!-- TTNS:RELAY_SCHEMA=3 -->", relay)
+        self.assertIn("## Orientation — copied verbatim", relay)
+        self.assertIn("- **Goal:** Ship the fixture change end-to-end", relay)
+        self.assertIn("- **Waiting on:** none", relay)
+        self.assertIn("Goal and Waiting on", relay)
+        self.assertIn("not proof of compliance", relay)
 
 
 if __name__ == "__main__":

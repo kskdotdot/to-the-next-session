@@ -3,6 +3,51 @@
 All notable changes to this skill are recorded here. Versions follow the
 `metadata.version` field in `SKILL.md`.
 
+## v0.7.0
+
+Cold-start orientation and emergency-path release, scoped to hardening the
+same-machine handoff. Cross-machine surfaces are unchanged.
+
+### Added
+
+- State schema 2: `assets/state-file-template.md` now carries a machine-validated
+  four-line ORIENTATION block (`Goal`, `Done when`, `Current phase`, `Waiting on`)
+  inside START HERE. `parse_state` requires exactly these labeled lines in order,
+  rejects placeholder values, and — when `Status: waiting_user` — rejects an
+  empty-equivalent `Waiting on` (`none`, `n/a`, dashes) so the state must name the
+  exact awaited input. The lifecycle `Status` is now a fill token instead of a
+  hardcoded `active`.
+- Relay schema 3: the live `assets/relay-prompt-template.md` adds an
+  "Orientation — copied verbatim" section and extends the recitation ack with the
+  Goal and Waiting on lines. The v0.6.0 relay body is frozen as
+  `assets/relay-prompt-template-v2.md`; schema-1 states keep rendering their
+  established schema-2 relay byte-for-byte, and `verify`/`emit` accept exactly the
+  state-schema/relay-schema pairs finalize can produce (1→{1,2}, 2→{3}).
+- `assets/state-file-template-low-context.md`: a dedicated emergency template whose
+  shipped tokens are all required — single-value tokens plus whole-block tokens for
+  the constraints block, guards block, and artifact rows — with
+  `TTNS:LOW_CONTEXT_AUDIT=required` already in place, so the documented emergency
+  path finalizes exactly as written.
+
+### Changed
+
+- `_has_placeholder` matches placeholder-ish whole values only (`todo`, `tbd`,
+  `fill me`, whole-value `[...]`/`<...>`); substring heuristics that rejected
+  legitimate locators such as `...\Todo-project\...` are removed. Upstream fill
+  token, reserved token, and template-sentinel checks are unchanged.
+- Frozen relay assets are pinned by canonical UTF-8/LF hash (matching the runtime
+  load contract) instead of raw bytes, so a CRLF working tree — for example
+  `core.autocrlf=true` on Windows — no longer fails the frozen-asset test.
+- `references/compact-defense.md` post-compaction recovery contract: the
+  SessionStart pointer is now one fixed, neutral notice with a bounded candidate
+  count; no candidate-derived text (filename, Status, Last updated) may reach model
+  context, and candidates are never opened, parsed, ranked, or echoed by the hook.
+- Template close examples use `python <skill-root>/scripts/handoff.py ...` so the
+  command resolves from the task root.
+- `references/worked-example.md` shows the schema 2 state and an emergency
+  low-context variant; INVARIANTS no longer duplicates the Goal owned by
+  ORIENTATION.
+
 ## v0.6.0
 
 Read-cost and continuation-fidelity release. Standard same-machine produce now

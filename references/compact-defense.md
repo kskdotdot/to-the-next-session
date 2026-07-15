@@ -47,9 +47,10 @@ call a model. Only the active agent can curate C#/G#/A#/D# correctly.
 ## Post-compaction recovery
 
 WHEN a compacted session starts → DO scan only the task cwd for recognized state
-names, ignore explicitly terminal states, and inject a short pointer to every live
-candidate → DONE iff the summary cannot silently override a current state and the
-hook does not guess among multiple live tasks.
+names and inject one fixed, neutral notice carrying a bounded candidate count →
+DONE iff the summary cannot silently override a current state and no
+candidate-derived text (filename, Status, Last updated, or any other file content)
+reaches model context.
 
 Recognized names include unprefixed and local two-digit forms:
 
@@ -58,9 +59,10 @@ Recognized names include unprefixed and local two-digit forms:
 - `RESUME*.md`
 - `NN_RESUME*.md`
 
-Legacy files without a Status field remain candidates. Recursive filesystem search is
-outside this hook's job.
-
-The pointer may sanitize and echo the state's leading `_Status:` and `_Last
-updated:` values for display. It must not use them to compute elapsed time, decide
-freshness, skip injection, or block compaction.
+Name matches are unverified candidates. The hook must not open, parse, rank, echo,
+or select among them; candidates may include closed handoffs, and the skill's
+helper rejects terminal states at verify time. The notice tells the session to
+invoke the skill and verify with the helper before trusting any candidate over the
+summary. Cap the displayed count (for example `10+`), keep the notice ASCII and
+fixed-shape, and stay fail-open. Recursive filesystem search is outside this hook's
+job.

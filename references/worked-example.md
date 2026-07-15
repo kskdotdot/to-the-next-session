@@ -13,7 +13,7 @@ next session runs on another machine.
 ```markdown
 # TO THE NEXT SESSION — records report
 
-_TTNS schema: 1_
+_TTNS schema: 2_
 _Handoff ID: records-report_
 _Status: active_
 _Target: cross-machine_
@@ -22,8 +22,12 @@ _Last updated: 2026-07-11T18:00:00+09:00_
 _Superseded by: none_
 
 ## START HERE
-- Goal: deliver a reviewable records report.
-- Current phase: tiering verified; report draft is half complete.
+<!-- TTNS:BEGIN:ORIENTATION -->
+- **Goal:** deliver a reviewable records report
+- **Done when:** every tier section is drafted and A1 reproduces the counts
+- **Current phase:** tiering verified; report draft is half complete
+- **Waiting on:** none
+<!-- TTNS:END:ORIENTATION -->
 - Next: write the Tier B section.
 - Highest-risk rules: C1, C2, G1.
 - Read order: this state, then A1 and A3 only.
@@ -59,7 +63,6 @@ Required artifact IDs: A1, A3
 | A3 | `/work/records/report.md` | dirty report draft | sha256 against bundle manifest | archive:https://example.invalid/records-wip.zip#report.md |
 
 ## INVARIANTS
-- Goal and completion test: a reviewable draft; not final.
 - In scope / out of scope: report prose in; publication out.
 - Fixed values: A ≥ 80, B = 50–79, C < 50; source A1.
 
@@ -94,10 +97,20 @@ content sent to the next session.
 
 The fresh session resolves the repository and WIP archive, reads the state, and
 checks the fingerprint before editing, reciting the ack block (Handoff ID, verify
-result, C#/G# IDs, STATUS, NEXT TASK, Last updated) as a diagnostic, not proof of
-compliance. It opens A1 and A3 because NEXT TASK requires them; it does not preload
+result, C#/G# IDs, the Goal and Waiting on lines, STATUS, NEXT TASK, Last updated)
+as a diagnostic, not proof of compliance. It opens A1 and A3 because NEXT TASK requires them; it does not preload
 A2. G1 prevents publication. After writing the Tier B section, it updates the same
 state and finalizes a new relay.
 
 If the producer closes the state as complete before the old relay is pasted, the
 fingerprint/status check fails and the old Tier B action is not executed again.
+
+## Emergency low-context variant
+
+If compaction had been imminent mid-draft, the producer would instead copy
+`assets/state-file-template-low-context.md` and fill only its required tokens: the
+metadata, the four ORIENTATION lines, C1/C2 as the constraints block, G1 as the
+guards block, STATUS, the single NEXT TASK with its required IDs, and the A1/A3
+rows. The template already carries `TTNS:LOW_CONTEXT_AUDIT=required`, so the
+resuming session completes the full file-only audit in `references/playbook.md` §3
+before acting and then flips the marker to `completed`.

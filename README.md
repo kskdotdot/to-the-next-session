@@ -1,10 +1,10 @@
 # to-the-next-session
 
-[![version](https://img.shields.io/badge/version-0.6.0-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.7.0-blue)](CHANGELOG.md)
 [![license](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Python](https://img.shields.io/badge/helper-Python%203.10%2B-3776AB)](scripts/handoff.py)
 
-> Status: **v0.6.0** — usable; interfaces may evolve.
+> Status: **v0.7.0** — usable; interfaces may evolve.
 
 Move precision-critical work to a fresh AI session without trusting a lossy summary.
 
@@ -51,6 +51,24 @@ curates meaning; the script prevents mechanical drift.
 - The standard same-machine produce flow is completable from `SKILL.md` and the
   state template alone; `references/playbook.md` is now needed only for
   cross-machine transport, the manual fallback, or close/supersede.
+
+## What v0.7 adds
+
+- State schema 2: the four-line ORIENTATION block (Goal, Done when, Current phase,
+  Waiting on) is machine-validated and copied verbatim into the relay, so a cold
+  session no longer depends on prose discipline for basic orientation; a
+  `waiting_user` state must name the exact awaited input.
+- Relay schema 3 carries the orientation block; the v0.6.0 relay template is frozen
+  as `relay-prompt-template-v2.md`, and `verify`/`emit` stay backward-compatible
+  with schema 1 and schema 2 relays (schema 1 states keep rendering their
+  established schema 2 relay byte-for-byte).
+- A dedicated emergency template, `state-file-template-low-context.md`, ships only
+  required tokens (with whole-block tokens for C#/G#/artifact rows), so the
+  low-context path finalizes exactly as documented.
+- The lifecycle Status is a fill token, placeholder detection no longer rejects
+  legitimate locators such as `...\Todo-project\...`, and frozen-asset tests hash
+  canonical UTF-8/LF bytes so a CRLF working tree (e.g. `core.autocrlf=true`)
+  cannot fail them.
 
 ## Quick start: produce
 
@@ -145,9 +163,11 @@ change requires a new relay.
 
 `verify --relay` re-renders and compares the whole relay, so retaining the digest
 line while editing the relay body still fails. Comparison is schema-aware: a schema
-1 relay (saved before v0.6.0) is compared against the frozen v1 template, and a
-schema 2 relay against the current template; `verify --fingerprint` does not read
-the relay file and is schema-independent.
+1 relay (saved before v0.6.0) is compared against the frozen v1 template, a schema 2
+relay against the frozen v2 template, and a schema 3 relay against the current
+template — and only the state-schema/relay-schema pairs finalize can produce are
+accepted. `verify --fingerprint` does not read the relay file and is
+schema-independent.
 
 ## Install as a skill
 
@@ -165,9 +185,11 @@ claim fingerprint or atomic verification ran.
 ```text
 SKILL.md                         core workflow and triggers
 agents/openai.yaml               OpenAI/Codex discovery metadata
-assets/state-file-template.md    schema 1 canonical state
-assets/relay-prompt-template.md  fixed deterministic render template (schema 2)
+assets/state-file-template.md    schema 2 canonical state
+assets/state-file-template-low-context.md  emergency low-context state (schema 2)
+assets/relay-prompt-template.md  fixed deterministic render template (schema 3)
 assets/relay-prompt-template-v1.md  frozen schema-1 template (backward-compat verify only)
+assets/relay-prompt-template-v2.md  frozen schema-2 template (backward-compat verify only)
 scripts/handoff.py               finalize / verify / emit / close
 references/playbook.md           detailed audit and lifecycle
 references/when-to-handoff.md    boundary against /compact, memory, planning

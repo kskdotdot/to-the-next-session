@@ -5,8 +5,8 @@ the agent remains responsible for meaning.
 
 ## 1. Persist while work is live
 
-WHEN a meaningful step changes reality → DO update STATUS, NEXT TASK, affected A#
-rows, and D# records before continuing → DONE iff the state alone describes the new
+WHEN a meaningful step changes reality → DO update ORIENTATION (phase, waiting),
+STATUS, NEXT TASK, affected A# rows, and D# records before continuing → DONE iff the state alone describes the new
 present and one next action.
 
 Update the marked body blocks first. Update START HERE and Last updated last, as the
@@ -150,8 +150,9 @@ file-only audit in §3 before acting, then change that line to
 one stated action runs.
 
 Before the first substantive work, recite one block — Handoff ID, verify result (or
-`not_run: <reason>`), the C#/G# ID list, STATUS in one line, the single NEXT TASK,
-and Last updated — as a diagnostic recitation, not proof of compliance. Read-only
+`not_run: <reason>`), the C#/G# ID list, the Goal and Waiting on lines (schema 2
+state), STATUS in one line, the single NEXT TASK, and Last updated — as a diagnostic
+recitation, not proof of compliance. Read-only
 investigation and emergency repair may proceed before it.
 
 WHEN the action advances → DO persist the same state file before another action →

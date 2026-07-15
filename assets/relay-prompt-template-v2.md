@@ -1,10 +1,11 @@
 <!--
-  Fixed render template for scripts/handoff.py. Edit prose only when the helper
-  contract and tests are updated in the same change. Do not add/remove TTNS tokens
-  by hand in a filled relay.
+  Frozen v0.6.0 relay template body (TTNS:RELAY_SCHEMA=2), kept only so old saved
+  schema-2 relays keep verifying and so schema-1 states keep rendering their
+  established relay shape. Do not edit; its canonical UTF-8/LF hash is pinned in
+  tests. The live template is relay-prompt-template.md.
 -->
 <!-- TTNS:BEGIN:RELAY_TEMPLATE -->
-<!-- TTNS:RELAY_SCHEMA=3 -->
+<!-- TTNS:RELAY_SCHEMA=2 -->
 <!-- TTNS:SKILL=to-the-next-session -->
 <!-- TTNS:HANDOFF_ID=@@TTNS_HANDOFF_ID@@ -->
 <!-- TTNS:STATE_FINGERPRINT=@@TTNS_STATE_FINGERPRINT@@ -->
@@ -31,10 +32,6 @@ If the fingerprint differs, the state is terminal, or a fresher state exists, th
 relay is stale: do not execute its old NEXT TASK. Read the latest canonical state or
 stop and report the conflict. If Status is `waiting_user`, perform no task mutation
 until the named user input arrives.
-
-## Orientation — copied verbatim
-
-@@TTNS_ORIENTATION@@
 
 ## Current status — copied verbatim
 
@@ -67,8 +64,7 @@ advances, then re-finalize the relay after every state change.
 
 Before the first substantive work in this task, recite one block: Handoff ID, verify
 result (or `not_run: <reason>` if verification could not run), the C# and G# ID list
-(IDs only, not the body text), the Goal and Waiting on lines, STATUS in one line,
-the single NEXT TASK, and this state's Last updated. This is a diagnostic
-recitation, not proof of compliance. Read-only investigation and emergency repair
-may proceed before it.
+(IDs only, not the body text), STATUS in one line, the single NEXT TASK, and this
+state's Last updated. This is a diagnostic recitation, not proof of compliance.
+Read-only investigation and emergency repair may proceed before it.
 <!-- TTNS:END:RELAY_TEMPLATE -->

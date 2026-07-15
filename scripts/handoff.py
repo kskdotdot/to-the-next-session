@@ -49,6 +49,29 @@ TEMPLATE_TOKENS = {
     "@@TTNS_INVIOLABLE_CONSTRAINTS@@",
     "@@TTNS_ACTIVE_ACTION_GUARDS@@",
 }
+ORIENTATION_TOKEN = "@@TTNS_ORIENTATION@@"
+# Relay schema registry: filename and exact token set per schema. v1/v2 are frozen
+# assets kept only so old saved relays keep verifying; v3 is the live template.
+RELAY_SCHEMAS = {
+    "1": ("relay-prompt-template-v1.md", frozenset(TEMPLATE_TOKENS)),
+    "2": ("relay-prompt-template-v2.md", frozenset(TEMPLATE_TOKENS)),
+    "3": (
+        "relay-prompt-template.md",
+        frozenset(TEMPLATE_TOKENS | {ORIENTATION_TOKEN}),
+    ),
+}
+STATE_SCHEMAS = {"1", "2"}
+# finalize renders a state through the newest relay schema its state schema can
+# fill; verify accepts exactly these pairs (no silent cross-schema acceptance).
+STATE_TO_RELAY_SCHEMA = {"1": "2", "2": "3"}
+ACCEPTED_RELAY_SCHEMAS = {"1": frozenset({"1", "2"}), "2": frozenset({"3"})}
+# ORIENTATION block contract (state schema 2): exactly these labels, this order.
+ORIENTATION_LABELS = ("Goal", "Done when", "Current phase", "Waiting on")
+# waiting_user must name the awaited input; these values are empty-equivalent
+# after strip+casefold.
+WAITING_NONE_EQUIVALENTS = {
+    "none", "none.", "n/a", "n/a.", "-", "—", "–", "−",
+}
 # State-template fill-in placeholders: @@TTNS_FILL_<NAME>@@. A leftover one means
 # the producing agent forgot to fill the template.
 FILL_TOKEN_RE = re.compile(r"@@TTNS_FILL_[A-Z0-9_]+@@")
@@ -112,12 +135,14 @@ class Artifact:
 @dataclass(frozen=True)
 class ParsedState:
     path: Path
+    schema: str
     handoff_id: str
     status: str
     target: str
     state_locator: str
     last_updated: str
     superseded_by: str
+    orientation_block: str | None
     constraints: str
     guards: str
     status_text: str
@@ -182,14 +207,18 @@ def _block(text: str, name: str) -> str:
 
 
 def _has_placeholder(value: str) -> bool:
-    lowered = value.casefold()
+    """Placeholder-ish whole values only. Substring heuristics were removed in
+    v0.7.0: they rejected legitimate locators such as `C:\\...\\Todo-project\\x.md`.
+    Whole-value `[...]`/`<...>` still catches novel placeholders like `[TBD]`;
+    fill/reserved-token and template-sentinel checks remain upstream."""
+    stripped = value.strip()
+    lowered = stripped.casefold()
     return (
-        not value.strip()
-        or ("[" in value and "]" in value)
-        or ("<" in value and ">" in value)
+        not stripped
         or "@@ttns_" in lowered
-        or "todo" in lowered
-        or "fill me" in lowered
+        or lowered in {"todo", "tbd", "fill me"}
+        or (stripped.startswith("[") and stripped.endswith("]"))
+        or (stripped.startswith("<") and stripped.endswith(">"))
     )
 
 
@@ -240,6 +269,40 @@ def _valid_portable(value: str, *, artifact: bool = False) -> bool:
         anchor, member = value.removeprefix("archive:").rsplit("#", 1)
         return bool(anchor.strip()) and _safe_relative(member)
     return False
+
+
+def _validate_orientation(block: str, status: str) -> None:
+    """State schema 2: exactly the four labeled lines, fixed order, no
+    placeholder values; waiting_user must name the awaited input."""
+    lines = [line for line in block.splitlines() if line.strip()]
+    if len(lines) != len(ORIENTATION_LABELS):
+        raise TtnsError(
+            EXIT_STATE_INVALID,
+            "ORIENTATION needs exactly these lines in order: "
+            + ", ".join(ORIENTATION_LABELS),
+        )
+    values: dict[str, str] = {}
+    for line, label in zip(lines, ORIENTATION_LABELS):
+        match = re.fullmatch(rf"- \*\*{re.escape(label)}:\*\* (.+)", line)
+        if match is None:
+            raise TtnsError(
+                EXIT_STATE_INVALID,
+                f"ORIENTATION line must be '- **{label}:** <value>'",
+            )
+        value = match.group(1).strip()
+        if _has_placeholder(value):
+            raise TtnsError(
+                EXIT_STATE_INVALID, f"ORIENTATION {label} is a placeholder"
+            )
+        values[label] = value
+    if (
+        status == "waiting_user"
+        and values["Waiting on"].strip().casefold() in WAITING_NONE_EQUIVALENTS
+    ):
+        raise TtnsError(
+            EXIT_STATE_INVALID,
+            "waiting_user needs the exact awaited input in Waiting on",
+        )
 
 
 def _artifact_rows(text: str) -> dict[str, Artifact]:
@@ -317,7 +380,7 @@ def parse_state(path: Path, raw: bytes | None = None) -> ParsedState:
     last_updated = _field(text, "Last updated")
     superseded_by = _field(text, "Superseded by")
 
-    if schema != "1":
+    if schema not in STATE_SCHEMAS:
         raise TtnsError(EXIT_STATE_INVALID, "unsupported TTNS schema")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", handoff_id):
         raise TtnsError(EXIT_STATE_INVALID, "invalid Handoff ID")
@@ -363,6 +426,11 @@ def parse_state(path: Path, raw: bytes | None = None) -> ParsedState:
         raise TtnsError(
             EXIT_STATE_INVALID, "only superseded state may name a successor"
         )
+
+    orientation_block: str | None = None
+    if schema == "2":
+        orientation_block = _block(text, "ORIENTATION")
+        _validate_orientation(orientation_block, status)
 
     constraints = _block(text, "INVIOLABLE_CONSTRAINTS")
     guards = _block(text, "ACTIVE_ACTION_GUARDS")
@@ -418,12 +486,14 @@ def parse_state(path: Path, raw: bytes | None = None) -> ParsedState:
 
     return ParsedState(
         path=path,
+        schema=schema,
         handoff_id=handoff_id,
         status=status,
         target=target,
         state_locator=state_locator,
         last_updated=last_updated,
         superseded_by=superseded_by,
+        orientation_block=orientation_block,
         constraints=constraints,
         guards=guards,
         status_text=status_text,
@@ -435,9 +505,14 @@ def parse_state(path: Path, raw: bytes | None = None) -> ParsedState:
     )
 
 
-def load_relay_template(
-    script_path: Path | None = None, *, filename: str = "relay-prompt-template.md"
+def load_relay_template_for_schema(
+    schema: str, script_path: Path | None = None
 ) -> str:
+    if schema not in RELAY_SCHEMAS:
+        raise TtnsError(
+            EXIT_RELAY_STALE, f"unsupported_schema: TTNS:RELAY_SCHEMA={schema}"
+        )
+    filename, expected_tokens = RELAY_SCHEMAS[schema]
     script = Path(script_path or __file__).resolve()
     path = script.parent.parent / "assets" / filename
     raw = _read_bytes(path, label="relay template")
@@ -449,14 +524,14 @@ def load_relay_template(
     body = text[text.index(begin) + len(begin) : text.index(end)]
     body = body.removeprefix("\n").removesuffix("\n")
     found = set(re.findall(r"@@TTNS_[A-Z_]+@@", body))
-    if found != TEMPLATE_TOKENS:
+    if found != expected_tokens:
         raise TtnsError(EXIT_INTERNAL, "shipped relay template tokens are invalid")
     return body + "\n"
 
 
 def load_relay_template_v1(script_path: Path | None = None) -> str:
     """Frozen pre-v0.6.0 relay template body, kept only to verify old saved relays."""
-    return load_relay_template(script_path, filename="relay-prompt-template-v1.md")
+    return load_relay_template_for_schema("1", script_path)
 
 
 _SCHEMA_LINE_RE = re.compile(r"(?m)^<!-- TTNS:RELAY_SCHEMA=([^\s]*) -->$")
@@ -473,19 +548,6 @@ def _relay_schema(relay_text: str) -> str:
             "saved relay must declare exactly one TTNS:RELAY_SCHEMA",
         )
     return matches[0]
-
-
-def load_relay_template_for_schema(
-    schema: str, script_path: Path | None = None
-) -> str:
-    if schema == "2":
-        return load_relay_template(script_path)
-    if schema == "1":
-        return load_relay_template_v1(script_path)
-    # Unrecognized value: same untrustworthy-relay bucket as the count check above.
-    raise TtnsError(
-        EXIT_RELAY_STALE, f"unsupported_schema: TTNS:RELAY_SCHEMA={schema}"
-    )
 
 
 def _required_artifacts(state: ParsedState) -> str:
@@ -521,8 +583,10 @@ def render_relay(
         "@@TTNS_INVIOLABLE_CONSTRAINTS@@": state.constraints,
         "@@TTNS_ACTIVE_ACTION_GUARDS@@": state.guards,
     }
+    if state.orientation_block is not None:
+        values[ORIENTATION_TOKEN] = state.orientation_block
     token_pattern = re.compile(
-        "|".join(re.escape(token) for token in sorted(TEMPLATE_TOKENS, key=len, reverse=True))
+        "|".join(re.escape(token) for token in sorted(values, key=len, reverse=True))
     )
     rendered = token_pattern.sub(lambda match: values[match.group(0)], template)
     if re.search(r"@@TTNS_[A-Z_]+@@", rendered):
@@ -576,7 +640,7 @@ def finalize_pair(state_path: Path, relay_path: Path) -> bytes:
     original_state = _read_bytes(state_path, label="state")
     state = parse_state(state_path, original_state)
     _ensure_live(state)
-    template = load_relay_template()
+    template = load_relay_template_for_schema(STATE_TO_RELAY_SCHEMA[state.schema])
     rendered = render_relay(state, template, relay_path)
 
     def state_is_unchanged():
@@ -602,10 +666,20 @@ def verify_pair(state_path: Path, relay_path: Path) -> bytes:
         raise TtnsError(EXIT_RELAY_STALE, f"saved relay is missing: {relay_path}")
     first_relay = _read_bytes(relay_path, label="saved relay")
     canonical_relay = canonical_utf8_lf(first_relay)
-    # verify --relay is schema-aware: schema 1 compares against the frozen v1
-    # template so old saved relays keep verifying; schema 2 compares against the
-    # current template. verify --fingerprint never reaches this path (schema-independent).
+    # verify --relay is schema-aware: each relay schema compares against its own
+    # (frozen) template so old saved relays keep verifying, and only the exact
+    # state-schema/relay-schema pairs finalize can produce are accepted.
+    # verify --fingerprint never reaches this path (schema-independent).
     schema = _relay_schema(canonical_relay.decode("utf-8"))
+    if schema not in RELAY_SCHEMAS:
+        raise TtnsError(
+            EXIT_RELAY_STALE, f"unsupported_schema: TTNS:RELAY_SCHEMA={schema}"
+        )
+    if schema not in ACCEPTED_RELAY_SCHEMAS[state.schema]:
+        raise TtnsError(
+            EXIT_RELAY_STALE,
+            f"relay schema {schema} does not match state schema {state.schema}",
+        )
     template = load_relay_template_for_schema(schema)
     expected = render_relay(state, template, relay_path)
     if canonical_relay != expected:

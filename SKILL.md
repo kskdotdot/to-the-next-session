@@ -15,7 +15,7 @@ description: >-
   activation, keep the non-terminal state current through waiting_user, resume, and
   close; never create speculative state.
 metadata:
-  version: 0.6.0
+  version: 0.7.0
 ---
 
 # To The Next Session
@@ -39,9 +39,9 @@ The state preserves; the relay launches. Always produce both for a real handoff.
 
 1. Copy `assets/state-file-template.md` to the task root. Prefer a local naming
    convention such as `NN_TO_THE_NEXT_SESSION.md`.
-2. Fill every `@@TTNS_FILL_*@@` token and marked block. Keep STATUS, NEXT TASK,
-   ARTIFACT INDEX, and DECISIONS current after each meaningful step rather than
-   reconstructing them at the end.
+2. Fill every `@@TTNS_FILL_*@@` token and marked block. Keep ORIENTATION, STATUS,
+   NEXT TASK, ARTIFACT INDEX, and DECISIONS current after each meaningful step
+   rather than reconstructing them at the end.
 3. Sweep the visible conversation for approvals, corrections, and user-consulted
    decisions. Record what was chosen, why, what was rejected, and the honest source.
 4. Run the template-embedded HANDOFF AUDIT (6 MUST) at the bottom of the state file.
@@ -67,11 +67,11 @@ token, each as a distinct error, rather than risk rewriting a verbatim C#/G# blo
 ## Emergency low-context path
 
 Use only when Gate B (imminent compaction) is open and too little context remains
-for the full flow above. Copy the state template; fill only C#, active G#, STATUS,
-NEXT TASK, and every required A# — never `[unverified]` in these — and skip deferred
-A# detail, D#, and other prose. Add a fixed OPEN ISSUES line
-`TTNS:LOW_CONTEXT_AUDIT=required`, then finalize. Do not open any `references/` file
-on this path.
+for the full flow above. Copy `assets/state-file-template-low-context.md` to the
+task root; every token it ships is required — fill them all, never `[unverified]`
+in any of them — and add nothing else. The `TTNS:LOW_CONTEXT_AUDIT=required` line
+is already in the template. Then finalize. Do not open any `references/` file on
+this path.
 
 ## Resume a handoff
 
@@ -97,8 +97,8 @@ Before any task mutation:
 
 Before the first substantive work, recite one block: Handoff ID, verify result (or
 `not_run: <reason>` if verification could not run), the C# and G# ID list (IDs only,
-not the body text), STATUS in one line, the single NEXT TASK, and the state's Last
-updated. This is a diagnostic recitation, not proof of compliance. Read-only
+not the body text), the Goal and Waiting on lines (schema 2 state), STATUS in one
+line, the single NEXT TASK, and the state's Last updated. This is a diagnostic recitation, not proof of compliance. Read-only
 investigation and emergency repair may proceed before it.
 
 For same-machine resume with the saved relay still present, run the stronger full
@@ -182,7 +182,8 @@ fenced block. Do not pretend the fingerprint or atomicity checks ran.
 
 ## References
 
-- `assets/state-file-template.md`: schema 1 state.
+- `assets/state-file-template.md`: schema 2 state.
+- `assets/state-file-template-low-context.md`: emergency low-context state.
 - `assets/relay-prompt-template.md`: fixed helper render template.
 - `references/playbook.md`: persist, audit, locator, lifecycle, fallback, compact.
 - `references/when-to-handoff.md`: boundary against /compact, memory, and planning.
