@@ -50,21 +50,44 @@ TEMPLATE_TOKENS = {
     "@@TTNS_ACTIVE_ACTION_GUARDS@@",
 }
 ORIENTATION_TOKEN = "@@TTNS_ORIENTATION@@"
-# Relay schema registry: filename and exact token set per schema. v1/v2 are frozen
-# assets kept only so old saved relays keep verifying; v3 is the live template.
+# Lean relay (schema 4) token set: a freshness-checkable pointer to the state, not a
+# copy of it. It drops the verbose bodies that duplicate the state file (C#
+# constraints, artifact table rows, STATUS paragraph, producing-machine abs paths)
+# and keeps only what a cold session needs to locate + verify the state, stay gated
+# until it has, orient, and see the single next action plus the still-binding G#
+# authority guards.
+LEAN_TOKENS = frozenset(
+    {
+        "@@TTNS_HANDOFF_ID@@",
+        "@@TTNS_STATUS@@",
+        "@@TTNS_TARGET@@",
+        "@@TTNS_STATE_LOCATOR@@",
+        "@@TTNS_STATE_FINGERPRINT@@",
+        "@@TTNS_NEXT_TASK@@",
+        "@@TTNS_REQUIRED_ARTIFACT_IDS@@",
+        "@@TTNS_ACTIVE_ACTION_GUARDS@@",
+        ORIENTATION_TOKEN,
+    }
+)
+# Relay schema registry: filename and exact token set per schema. v1/v2/v3 are frozen
+# assets kept only so old saved relays keep verifying; schema 4 is the live (lean)
+# template.
 RELAY_SCHEMAS = {
     "1": ("relay-prompt-template-v1.md", frozenset(TEMPLATE_TOKENS)),
     "2": ("relay-prompt-template-v2.md", frozenset(TEMPLATE_TOKENS)),
     "3": (
-        "relay-prompt-template.md",
+        "relay-prompt-template-v3.md",
         frozenset(TEMPLATE_TOKENS | {ORIENTATION_TOKEN}),
     ),
+    "4": ("relay-prompt-template.md", LEAN_TOKENS),
 }
 STATE_SCHEMAS = {"1", "2"}
 # finalize renders a state through the newest relay schema its state schema can
 # fill; verify accepts exactly these pairs (no silent cross-schema acceptance).
-STATE_TO_RELAY_SCHEMA = {"1": "2", "2": "3"}
-ACCEPTED_RELAY_SCHEMAS = {"1": frozenset({"1", "2"}), "2": frozenset({"3"})}
+# Schema-2 states now render the lean schema-4 relay; schema-3 relays saved before
+# the v0.8.0 lean change keep verifying (2 accepts {3, 4}).
+STATE_TO_RELAY_SCHEMA = {"1": "2", "2": "4"}
+ACCEPTED_RELAY_SCHEMAS = {"1": frozenset({"1", "2"}), "2": frozenset({"3", "4"})}
 # ORIENTATION block contract (state schema 2): exactly these labels, this order.
 ORIENTATION_LABELS = ("Goal", "Done when", "Current phase", "Waiting on")
 # waiting_user must name the awaited input; these values are empty-equivalent

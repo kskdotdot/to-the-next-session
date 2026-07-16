@@ -149,11 +149,13 @@ file-only audit in §3 before acting, then change that line to
 `TTNS:LOW_CONTEXT_AUDIT=completed` → DONE iff the marker reads `completed` before the
 one stated action runs.
 
-Before the first substantive work, recite one block — Handoff ID, verify result (or
-`not_run: <reason>`), the C#/G# ID list, the Goal and Waiting on lines (schema 2
-state), STATUS in one line, the single NEXT TASK, and Last updated — as a diagnostic
-recitation, not proof of compliance. Read-only
-investigation and emergency repair may proceed before it.
+The lean relay makes this a bootstrap gate: until the state is resolved, read, and
+verified, do only that or report you cannot — no task action, artifact read, edit, or
+external action, even though the NEXT TASK preview is visible. Before the first
+substantive work, recite one block — Handoff ID, verify result (or `not_run: <reason>`),
+the C#/G# ID list, the Goal and Waiting on lines (schema 2 state), STATUS in one line,
+the single NEXT TASK, and Last updated — as a diagnostic recitation, not proof of
+compliance.
 
 WHEN the action advances → DO persist the same state file before another action →
 DONE iff STATUS, NEXT TASK, A#, D#, START HERE, and Last updated again agree.
@@ -174,8 +176,9 @@ untouched so its staleness remains observable.
 ## 7. Manual-unverified fallback
 
 WHEN Python cannot run → DO fill the state and relay templates manually, label the
-relay `manual-unverified`, save it, read it back, and compare each C# and active G#
-character for character → DONE iff the saved text is the final fenced block and the
+relay `manual-unverified`, save it, read it back, and copy each active G# guard
+character for character (the lean relay carries G# verbatim; the C# set travels in the
+state you also transport) → DONE iff the saved text is the final fenced block and the
 handoff explicitly says fingerprint, atomicity, and full-relay verification did not
 run.
 

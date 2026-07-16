@@ -3,6 +3,57 @@
 All notable changes to this skill are recorded here. Versions follow the
 `metadata.version` field in `SKILL.md`.
 
+## v0.8.0
+
+Lean-relay release. The copy-paste launch message stops duplicating what already
+lives in the canonical state file, so it stays short even for constraint-heavy,
+precision-critical handoffs. The state file, its schema 2, and the fingerprint
+contract are unchanged.
+
+### Changed
+
+- Relay schema 4 (`assets/relay-prompt-template.md`) is a lean pointer to the state,
+  not a copy of it. It drops the render tokens that reprinted state content — the full
+  C# constraint bodies (`@@TTNS_INVIOLABLE_CONSTRAINTS@@`), the artifact table
+  (`@@TTNS_REQUIRED_ARTIFACTS@@`), the STATUS paragraph (`@@TTNS_STATUS_TEXT@@`), and the
+  producing-machine absolute paths (`@@TTNS_STATE_ABS_PATH@@`, `@@TTNS_RELAY_ABS_PATH@@`)
+  — keeping only the state locator, fingerprint + verify command, orientation, the
+  single next-task preview, the required artifact IDs, and the still-binding G# guards
+  (9 tokens, down from 14). The C# constraints, artifact index, and STATUS are read from
+  the state file the resuming session must open first.
+- The relay now opens with a bootstrap gate: until the state is resolved, read, and
+  freshness-verified, the only permitted actions are resolve / read / verify / report;
+  no artifact reads and no task, edit, commit, push, deploy, send, or delete may happen
+  first, even though the next-task preview is visible. If the canonical state cannot be
+  obtained, the session stops rather than continuing from the pointer. The pre-recitation
+  "read-only investigation may proceed" allowance is removed here, in `SKILL.md`, and in
+  `references/playbook.md`, since the lean relay no longer carries the C#/G# bodies as a
+  fallback. G# authority guards stay verbatim in the relay because they gate irreversible
+  action.
+- `scripts/handoff.py` renders a schema-2 state through relay schema 4
+  (`STATE_TO_RELAY_SCHEMA`), and `verify`/`emit` accept a schema-3 relay saved before
+  this change (`ACCEPTED_RELAY_SCHEMAS`: state 1 → {1, 2}, state 2 → {3, 4}). The verbose
+  v0.7.0 template is frozen byte-for-byte as `assets/relay-prompt-template-v3.md` with a
+  pinned canonical UTF-8/LF hash.
+- `SKILL.md`, `README.md`, `references/playbook.md`, and `references/worked-example.md`
+  describe the relay as a verified pointer rather than a verbatim copy of C#/STATUS.
+
+### Added
+
+- Package tests for the lean relay: schema-4 token set (negative assertions that no C#
+  body, artifact row, STATUS paragraph, or abs-path token is present), the frozen v3
+  hash pin, backward-compatible `verify`/`emit` of a saved schema-3 relay, and a
+  bounded-size test proving the lean relay's length is independent of the C# and STATUS
+  body length.
+
+### Measured
+
+- On a realistic precision-critical handoff (5 C#, 2 G#, 3 A#, a four-sentence STATUS),
+  the relay drops from **4,239 to 2,698 canonical-LF bytes — a 36.4% reduction**; at 10
+  constraints it is 42.8%. The lean relay is a fixed ~2.7 KB regardless of how many
+  constraints or artifacts or how long the STATUS is, so the saving grows with the
+  handoff's precision, which is exactly the case this skill targets.
+
 ## v0.7.0
 
 Cold-start orientation and emergency-path release, scoped to hardening the

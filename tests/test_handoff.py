@@ -436,13 +436,13 @@ One phase is complete; the next phase has not started. 日本語の状態も逐�
         self.assertIn("_Status: superseded_", state)
         self.assertIn(f"_Superseded by: {successor}_", state)
 
-    def test_schema2_state_renders_schema3_relay_with_verbatim_orientation(self):
+    def test_schema2_state_renders_lean_schema4_relay(self):
         source = self.write_state_v2()
         result = self.finalize()
         self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
         relay = self.relay.read_text(encoding="utf-8")
-        self.assertIn("<!-- TTNS:RELAY_SCHEMA=3 -->", relay)
-        self.assertIn("## Orientation — copied verbatim", relay)
+        self.assertIn("<!-- TTNS:RELAY_SCHEMA=4 -->", relay)
+        # Orientation and the active guards are still copied verbatim.
         match = re.search(
             r"<!-- TTNS:BEGIN:ORIENTATION -->\n(.*?)\n<!-- TTNS:END:ORIENTATION -->",
             source,
@@ -450,10 +450,36 @@ One phase is complete; the next phase has not started. 日本語の状態も逐�
         )
         self.assertIsNotNone(match)
         self.assertIn(match.group(1), relay)
+        self.assertIn(
+            "Push and deploy remain forbidden until explicit user instruction", relay
+        )
+        # The bootstrap gate is present; the verbose duplicated bodies are gone.
+        self.assertIn("Bootstrap first", relay)
+        self.assertNotIn("Keep the threshold exactly", relay)
+        self.assertNotIn("日本語の状態も逐語で残す", relay)  # STATUS paragraph
+        self.assertNotIn("required ground truth", relay)  # artifact row
         verify = self.run_helper(
             "verify", "--state", self.state, "--relay", self.relay
         )
         self.assertEqual(verify.returncode, 0, verify.stderr.decode(errors="replace"))
+
+    def test_schema2_state_keeps_verifying_a_saved_schema3_relay(self):
+        # A schema-2 state accepts both the lean schema-4 relay and a schema-3 relay
+        # saved before the v0.8.0 lean change (rendered from the frozen v3 template).
+        self.write_state_v2()
+        helper = load_helper()
+        state = helper.parse_state(self.state)
+        frozen_v3 = helper.load_relay_template_for_schema("3")
+        v3_bytes = helper.render_relay(state, frozen_v3, self.relay)
+        self.assertIn(b"<!-- TTNS:RELAY_SCHEMA=3 -->\n", v3_bytes)
+        self.relay.write_bytes(v3_bytes)
+        for command in ("verify", "emit"):
+            result = self.run_helper(
+                command, "--state", self.state, "--relay", self.relay
+            )
+            self.assertEqual(
+                result.returncode, 0, result.stderr.decode(errors="replace")
+            )
 
     def test_schema1_state_keeps_rendering_schema2_relay_bytes(self):
         self.write_state()
@@ -608,7 +634,7 @@ One phase is complete; the next phase has not started. 日本語の状態も逐�
         self.state.write_text(filled, encoding="utf-8", newline="\n")
         result = self.finalize()
         self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
-        self.assertIn(b"<!-- TTNS:RELAY_SCHEMA=3 -->\n", self.relay.read_bytes())
+        self.assertIn(b"<!-- TTNS:RELAY_SCHEMA=4 -->\n", self.relay.read_bytes())
 
     def test_close_works_on_schema2_state(self):
         self.write_state_v2()
@@ -636,6 +662,7 @@ One phase is complete; the next phase has not started. 日本語の状態も逐�
             "relay-prompt-template.md",
             "relay-prompt-template-v1.md",
             "relay-prompt-template-v2.md",
+            "relay-prompt-template-v3.md",
         ):
             self.assertEqual(
                 (SKILL_ROOT / "assets" / name).read_bytes(),

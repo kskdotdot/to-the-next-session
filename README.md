@@ -1,10 +1,10 @@
 # to-the-next-session
 
-[![version](https://img.shields.io/badge/version-0.7.0-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.8.0-blue)](CHANGELOG.md)
 [![license](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Python](https://img.shields.io/badge/helper-Python%203.10%2B-3776AB)](scripts/handoff.py)
 
-> Status: **v0.7.0** — usable; interfaces may evolve.
+> Status: **v0.8.0** — usable; interfaces may evolve.
 
 Move precision-critical work to a fresh AI session without trusting a lossy summary.
 
@@ -70,6 +70,23 @@ curates meaning; the script prevents mechanical drift.
   canonical UTF-8/LF bytes so a CRLF working tree (e.g. `core.autocrlf=true`)
   cannot fail them.
 
+## What v0.8 adds
+
+- Relay schema 4 — a **lean relay**. The copy-paste launch message no longer reprints
+  the parts that already live in the state file (the full C# constraints, the artifact
+  table, the STATUS paragraph, the producing-machine absolute paths). It carries only a
+  freshness-verified pointer to the state, the four-line orientation, the still-binding
+  G# authority guards, the single next-task preview, and the required artifact IDs. Its
+  length no longer grows with the constraint set, artifact count, or STATUS length.
+- A **bootstrap gate** leads the relay: until the state is resolved, read, and verified,
+  the only permitted actions are resolve / read / verify / report — no artifact reads and
+  no task, edit, or external action, even though the next-task preview is visible. If the
+  state cannot be obtained, the session stops rather than continuing from the pointer.
+- The verbose v0.7.0 relay is frozen as `assets/relay-prompt-template-v3.md`; a schema-2
+  state now renders schema 4, and `verify`/`emit` still accept a schema-3 relay saved
+  before this change (state schema 2 accepts relay schema 3 or 4). The state file, its
+  schema, and the fingerprint contract are unchanged.
+
 ## Quick start: produce
 
 Copy the template into the active task:
@@ -117,9 +134,9 @@ TASK. Read the latest state or report the conflict.
 
 | ID | Meaning | Relay behavior |
 |---|---|---|
-| C# | task-wide inviolable constraint | copied verbatim |
-| G# | currently active permission/action guard | copied verbatim while active |
-| A# | artifact with locator and cheapest safe verification | only required IDs are eager |
+| C# | task-wide inviolable constraint | verbatim in the state; relay carries a verified pointer, read from the state |
+| G# | currently active permission/action guard | copied verbatim into the relay while active |
+| A# | artifact with locator and cheapest safe verification | only required IDs are eager; the table stays in the state |
 | D# | chosen decision, reason, rejected option, source | state reference prevents re-litigation |
 
 Statuses:
@@ -164,9 +181,10 @@ change requires a new relay.
 `verify --relay` re-renders and compares the whole relay, so retaining the digest
 line while editing the relay body still fails. Comparison is schema-aware: a schema
 1 relay (saved before v0.6.0) is compared against the frozen v1 template, a schema 2
-relay against the frozen v2 template, and a schema 3 relay against the current
-template — and only the state-schema/relay-schema pairs finalize can produce are
-accepted. `verify --fingerprint` does not read the relay file and is
+relay against the frozen v2 template, a schema 3 relay against the frozen v3 template,
+and a schema 4 relay against the current lean template — and only the
+state-schema/relay-schema pairs finalize can produce are accepted (state 1 → {1, 2},
+state 2 → {3, 4}). `verify --fingerprint` does not read the relay file and is
 schema-independent.
 
 ## Install as a skill
@@ -187,9 +205,10 @@ SKILL.md                         core workflow and triggers
 agents/openai.yaml               OpenAI/Codex discovery metadata
 assets/state-file-template.md    schema 2 canonical state
 assets/state-file-template-low-context.md  emergency low-context state (schema 2)
-assets/relay-prompt-template.md  fixed deterministic render template (schema 3)
+assets/relay-prompt-template.md  lean deterministic render template (schema 4)
 assets/relay-prompt-template-v1.md  frozen schema-1 template (backward-compat verify only)
 assets/relay-prompt-template-v2.md  frozen schema-2 template (backward-compat verify only)
+assets/relay-prompt-template-v3.md  frozen schema-3 template (backward-compat verify only)
 scripts/handoff.py               finalize / verify / emit / close
 references/playbook.md           detailed audit and lifecycle
 references/when-to-handoff.md    boundary against /compact, memory, planning

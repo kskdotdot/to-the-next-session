@@ -78,8 +78,10 @@ Required artifact IDs: A1, A3
 ```
 
 The commit locator carries the state and clean A1. A3 uses an archive because its
-dirty bytes are not present in that commit. A2 is deferred and therefore absent from
-the eager relay artifact table.
+dirty bytes are not present in that commit. A2 is deferred and therefore not in NEXT
+TASK's required IDs, so the resuming session never eager-reads it. The lean relay only
+names the required IDs (A1, A3); the full artifact table and the C# constraints stay in
+the state file the session must open first.
 
 ## Produce
 

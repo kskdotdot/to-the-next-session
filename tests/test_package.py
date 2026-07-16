@@ -30,9 +30,15 @@ RELAY_V1_FROZEN_SHA256 = (
 RELAY_V2_FROZEN_SHA256 = (
     "4cca481c2dbf970788a40e33585cb3c3a63958550e10412e4040d8ab9e90a1c2"
 )
+# v3: the verbose v0.7.0 relay template, frozen at the v0.8.0 lean-relay change so
+# schema-3 relays (and schema-2 states rendered before v0.8.0) keep verifying.
+RELAY_V3_FROZEN_SHA256 = (
+    "5c7cc2a986dc8ba2b79af3e1e3b4c107d97fb98be5df59b64c6b338c1247693e"
+)
 FROZEN_RELAY_TEMPLATES = {
     "1": ("relay-prompt-template-v1.md", RELAY_V1_FROZEN_SHA256),
     "2": ("relay-prompt-template-v2.md", RELAY_V2_FROZEN_SHA256),
+    "3": ("relay-prompt-template-v3.md", RELAY_V3_FROZEN_SHA256),
 }
 
 # Pinned fingerprint for a fixed sample. canonical_utf8_lf/state_fingerprint were not
@@ -62,10 +68,10 @@ def load_helper():
 class PublicPackageContractTests(unittest.TestCase):
     def test_release_version_and_public_entrypoints(self):
         skill = read("SKILL.md")
-        self.assertRegex(skill, r"(?m)^  version: 0\.7\.0$")
+        self.assertRegex(skill, r"(?m)^  version: 0\.8\.0$")
         readme = read("README.md")
-        self.assertIn("version-0.7.0", readme)
-        self.assertIn("Status: **v0.7.0**", readme)
+        self.assertIn("version-0.8.0", readme)
+        self.assertIn("Status: **v0.8.0**", readme)
         self.assertIn("scripts/handoff.py", readme)
         self.assertNotIn("markdown-only", readme.casefold())
 
@@ -107,10 +113,21 @@ class PublicPackageContractTests(unittest.TestCase):
                 )
 
         relay = read("assets/relay-prompt-template.md")
-        self.assertIn("<!-- TTNS:RELAY_SCHEMA=3 -->", relay)
+        self.assertIn("<!-- TTNS:RELAY_SCHEMA=4 -->", relay)
         tokens = set(re.findall(r"@@TTNS_[A-Z_]+@@", relay))
-        self.assertEqual(len(tokens), 14)
+        # The lean relay carries only the pointer/orientation/guard/next tokens.
+        self.assertEqual(len(tokens), 9)
         self.assertIn("@@TTNS_ORIENTATION@@", tokens)
+        self.assertIn("@@TTNS_ACTIVE_ACTION_GUARDS@@", tokens)
+        # It drops the verbose bodies that duplicate the canonical state file.
+        for dropped in (
+            "@@TTNS_INVIOLABLE_CONSTRAINTS@@",
+            "@@TTNS_STATUS_TEXT@@",
+            "@@TTNS_REQUIRED_ARTIFACTS@@",
+            "@@TTNS_STATE_ABS_PATH@@",
+            "@@TTNS_RELAY_ABS_PATH@@",
+        ):
+            self.assertNotIn(dropped, tokens)
         for token in tokens:
             self.assertGreaterEqual(relay.count(token), 1)
 
@@ -416,19 +433,86 @@ One phase is complete; the next phase has not started.
                     raw.decode("utf-8"),
                 )
 
-    # 9. The v3 render (schema-2 state) carries the verbatim orientation block
-    # and the extended recitation ack.
-    def test_v3_relay_carries_orientation_and_extended_ack(self):
+    # 9. The lean v4 render (schema-2 state) keeps orientation, the still-binding G#
+    # guards, the next-task preview, and the recitation ack — and drops the verbose
+    # bodies (C#, artifact rows, STATUS paragraph) that duplicate the state file.
+    def test_v4_lean_relay_keeps_orientation_guards_drops_verbose_bodies(self):
         self.write_state(schema="2")
         result = self.finalize()
         self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
         relay = self.relay.read_text(encoding="utf-8")
-        self.assertIn("<!-- TTNS:RELAY_SCHEMA=3 -->", relay)
-        self.assertIn("## Orientation — copied verbatim", relay)
+        self.assertIn("<!-- TTNS:RELAY_SCHEMA=4 -->", relay)
+        # Kept: orientation, active guards verbatim, bootstrap gate, ack.
+        self.assertIn("Orientation — verbatim from the state", relay)
         self.assertIn("- **Goal:** Ship the fixture change end-to-end", relay)
         self.assertIn("- **Waiting on:** none", relay)
+        self.assertIn(
+            "Push and deploy remain forbidden until explicit user instruction", relay
+        )
+        self.assertIn("Bootstrap first", relay)
+        self.assertIn("authorized only after bootstrap", relay)
         self.assertIn("Goal and Waiting on", relay)
-        self.assertIn("not proof of compliance", relay)
+        self.assertIn("proof of compliance", relay)
+        # Dropped: C# bodies, the STATUS paragraph, and the artifact table rows.
+        self.assertNotIn("Keep the threshold exactly", relay)
+        self.assertNotIn("One phase is complete", relay)
+        self.assertNotIn("required ground truth", relay)
+        # The escape hatch that let work start before the state was read is gone.
+        self.assertNotIn(
+            "Read-only investigation and emergency repair may proceed", relay
+        )
+
+    # 10. A schema-2 state whose saved relay is schema 3 (rendered before the v0.8.0
+    # lean change, from the frozen v3 template) still verifies and emits.
+    def test_saved_schema3_relay_still_verifies_and_emits(self):
+        self.write_state(schema="2")
+        helper = load_helper()
+        state = helper.parse_state(self.state)
+        v3_template = helper.load_relay_template_for_schema("3")
+        v3_rendered = helper.render_relay(state, v3_template, self.relay)
+        self.assertIn(b"<!-- TTNS:RELAY_SCHEMA=3 -->\n", v3_rendered)
+        self.relay.write_bytes(v3_rendered)
+
+        result = self.run_helper(
+            "verify", "--state", self.state, "--relay", self.relay
+        )
+        self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
+        emit_result = self.run_helper(
+            "emit", "--state", self.state, "--relay", self.relay
+        )
+        self.assertEqual(
+            emit_result.returncode, 0, emit_result.stderr.decode(errors="replace")
+        )
+        self.assertEqual(emit_result.stdout, helper.copy_box(v3_rendered))
+
+    # 11. The lean relay's length does not depend on how long the C# constraint set
+    # or STATUS paragraph is: those bodies live only in the state file now.
+    def test_lean_relay_length_is_independent_of_constraint_and_status_length(self):
+        small = (
+            "- **C1:** Keep the threshold exactly >= 80.\n"
+            "- **C2:** Do NOT publish before explicit authorization."
+        )
+        self.write_state(schema="2", constraints=small)
+        self.assertEqual(self.finalize().returncode, 0)
+        small_len = self.relay.stat().st_size
+
+        big = "\n".join(
+            f"- **C{i}:** " + ("padding constraint body " * 30) for i in range(1, 9)
+        )
+        big_status = "Present reality. " * 60
+        self.write_state(schema="2", constraints=big)
+        self.state.write_text(
+            self.state.read_text(encoding="utf-8").replace(
+                "One phase is complete; the next phase has not started.", big_status
+            ),
+            encoding="utf-8",
+            newline="\n",
+        )
+        self.assertEqual(self.finalize().returncode, 0)
+        big_len = self.relay.stat().st_size
+
+        self.assertEqual(small_len, big_len)
+        self.assertNotIn("padding constraint body", self.relay.read_text("utf-8"))
 
 
 if __name__ == "__main__":
