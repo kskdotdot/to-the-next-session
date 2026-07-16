@@ -5,17 +5,17 @@ description: >-
   person, or context-window boundary. Invoke ONLY when (A) the user explicitly asks
   to preserve/transfer/resume this task for cold continuation (e.g. handoff,
   引き継ぎ, 別セッションで続き), or supplies a RELAY PROMPT or live STATE FILE as
-  operative continuation input; OR (B) BOTH (a current model-visible host
-  pre-compaction signal or an explicit user warning that context is low/automatic
-  compaction is imminent) AND (loss of a load-bearing number, constraint, guard,
-  decision, status/next action, or locator could alter the outcome). A alone is
-  sufficient. A bare /compact request, importance, precision, length, turn count,
-  context growth, an inferred boundary, or costly reconstruction alone does not
-  trigger. Review/testing of these artifacts is not operational input. After valid
-  activation, keep the non-terminal state current through waiting_user, resume, and
-  close; never create speculative state.
+  operative continuation input; OR (B) the remaining context window is below 20%,
+  judged ONLY from a current model-visible host pre-compaction/low-context signal
+  or an explicit user statement that less than 20% remains or that auto-compact is
+  about to run — then fire before auto-compact does; never from the agent's own
+  estimate. A alone is sufficient. A bare /compact request, importance, precision,
+  length, turn count, context growth, an inferred boundary, or costly
+  reconstruction alone does not trigger. Review/testing of these artifacts is not
+  operational input. After valid activation, keep the non-terminal state current
+  through waiting_user, resume, and close; never create speculative state.
 metadata:
-  version: 0.8.0
+  version: 0.8.1
 ---
 
 # To The Next Session
@@ -69,7 +69,7 @@ token, each as a distinct error, rather than risk rewriting a verbatim C#/G# blo
 
 ## Emergency low-context path
 
-Use only when Gate B (imminent compaction) is open and too little context remains
+Use only when Gate B (below 20% remaining) is open and too little context remains
 for the full flow above. Copy `assets/state-file-template-low-context.md` to the
 task root; every token it ships is required — fill them all, never `[unverified]`
 in any of them — and add nothing else. The `TTNS:LOW_CONTEXT_AUDIT=required` line

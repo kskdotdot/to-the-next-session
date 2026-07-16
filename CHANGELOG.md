@@ -3,6 +3,25 @@
 All notable changes to this skill are recorded here. Versions follow the
 `metadata.version` field in `SKILL.md`.
 
+## v0.8.1
+
+Trigger-narrowing bugfix. No helper, schema, template, or runtime-hook behavior
+changed.
+
+### Changed
+
+- `SKILL.md` description replaces gate (B)'s vague "context is low / pre-compaction
+  signal AND load-bearing loss risk" pair with one absolute, numeric rule: fire
+  before auto-compact once the remaining context window is below 20%. The 20%
+  judgment comes ONLY from a current model-visible host pre-compaction/low-context
+  signal or an explicit user statement — never from the agent's own estimate — and
+  fires unconditionally at that point (the separate "load-bearing loss" conjunct is
+  dropped). Condition (A) and the non-trigger list are unchanged.
+- `references/when-to-handoff.md` restates gate (B) the same way and adds a
+  "no gate has opened" guard to the `/compact`-or-summarize section, closing a path
+  where an unconditional below-20% gate could otherwise be read as bypassable by
+  calling continuity "low-stakes."
+
 ## v0.8.0
 
 Lean-relay release. The copy-paste launch message stops duplicating what already

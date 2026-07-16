@@ -1,10 +1,10 @@
 # to-the-next-session
 
-[![version](https://img.shields.io/badge/version-0.8.0-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.8.1-blue)](CHANGELOG.md)
 [![license](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Python](https://img.shields.io/badge/helper-Python%203.10%2B-3776AB)](scripts/handoff.py)
 
-> Status: **v0.8.0** — usable; interfaces may evolve.
+> Status: **v0.8.1** — usable; interfaces may evolve.
 
 Move precision-critical work to a fresh AI session without trusting a lossy summary.
 

@@ -12,15 +12,16 @@ RELAY PROMPT or live STATE FILE as operative continuation input (Gate A) → DO
 produce or resume the handoff → DONE iff a cold session can resume from files alone
 and receive the saved RELAY PROMPT as a copy-paste box.
 
-WHEN a current model-visible host pre-compaction signal, or an explicit user warning
-that context is low or automatic compaction is imminent, coincides with work whose
-loss of one load-bearing number, constraint, guard, decision, or locator could alter
-the outcome (Gate B) → DO create the STATE FILE and finalize a relay before the
-automatic summary runs → DONE iff the saved state and relay exist before compaction.
+WHEN the remaining context window is below 20% — established by a current
+model-visible host pre-compaction or low-context signal, or by an explicit user
+statement that less than 20% remains or that auto-compact is about to run (Gate B)
+→ DO create the STATE FILE and finalize a relay before the automatic summary runs →
+DONE iff the saved state and relay exist before compaction.
 
-If no pre-compaction signal is visible to the agent and the user has not warned,
-Gate B is false: do not infer imminence from task length, turn count, or context
-growth. Pre-compaction rescue is best effort, not guaranteed.
+Never estimate the remaining percentage yourself. If no such signal is visible and
+the user has not stated it, Gate B is false: do not infer imminence from task
+length, turn count, or context growth. Pre-compaction rescue is best effort, not
+guaranteed.
 
 These gates control initial activation only. Once validly started, keep the same
 non-terminal handoff current through `waiting_user`, receipt of the requested input,
@@ -36,9 +37,9 @@ its artifacts.
 
 ## Use /compact or automatic summarization
 
-WHEN continuity is low-stakes and omitted details are cheap to reconstruct → DO use
-the runtime's summary facility → DONE iff no load-bearing fact depends only on that
-summary.
+WHEN no gate has opened, continuity is low-stakes, and omitted details are cheap
+to reconstruct → DO use the runtime's summary facility → DONE iff no load-bearing
+fact depends only on that summary.
 
 A bare `/compact` request does not trigger this skill; an explicit request to
 preserve the task before compaction satisfies Gate A.
