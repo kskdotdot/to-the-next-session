@@ -81,24 +81,25 @@ The commit locator carries the state and clean A1. A3 uses an archive because it
 dirty bytes are not present in that commit. A2 is deferred and therefore not in NEXT
 TASK's required IDs, so the resuming session never eager-reads it. The lean relay only
 names the required IDs (A1, A3); the full artifact table and the C# constraints stay in
-the state file the session must open first.
+the state; the verified boot carries the constraints and required rows.
 
 ## Produce
 
 ```text
+python <skill-root>/scripts/handoff.py boot --state /work/records/handoff/01_TO_THE_NEXT_SESSION.md
 python <skill-root>/scripts/handoff.py finalize \
   --state /work/records/handoff/01_TO_THE_NEXT_SESSION.md \
   --relay /work/records/handoff/02_RELAY_PROMPT.md
 ```
 
-The helper saves the relay, verifies the whole-state fingerprint, reads the saved
+The helper saves the boot and relay, verifies the whole-state fingerprint, reads the saved
 bytes back, and writes a dynamically fenced copy box to stdout. That box is the final
 content sent to the next session.
 
 ## Resume
 
-The fresh session resolves the repository and WIP archive, reads the state, and
-checks the fingerprint before editing, reciting the ack block (Handoff ID, verify
+The fresh session resolves the state, verifies and reads the boot, then runs liveness
+before opening required artifacts and editing, reciting the ack block (Handoff ID, verify
 result, C#/G# IDs, the Goal and Waiting on lines, STATUS, NEXT TASK, Last updated)
 as a diagnostic, not proof of compliance. It opens A1 and A3 because NEXT TASK requires them; it does not preload
 A2. G1 prevents publication. After writing the Tier B section, it updates the same

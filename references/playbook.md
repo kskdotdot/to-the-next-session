@@ -69,7 +69,7 @@ not inspect Git status, open an artifact, contact a remote, or construct a bundl
 ## 3. File-only pre-handoff audit
 
 Standard same-machine produce is covered by the template-embedded HANDOFF AUDIT
-(6 MUST) in `assets/state-file-template.md`. Use this fuller section for
+(7 MUST) in `assets/state-file-template.md`. Use this fuller section for
 cross-machine transport, the manual fallback, close/supersede, or a deeper review.
 
 Ignore the chat scrollback during this audit. Use only the state and artifacts.
@@ -111,7 +111,8 @@ The state fingerprint is:
 The whole state is hashed. Any change to status, decision, locator, open issue, or
 prose therefore makes the old relay stale and requires finalize again.
 
-`verify --relay` re-renders the complete expected relay and compares it with the
+`verify --relay` also regenerates schema-5 boot bytes and verifies their locator
+and fingerprint. It re-renders the complete expected relay and compares it with the
 saved relay after only BOM/newline normalization. It catches a state edit, template
 change, digest-line edit, or relay-body edit. `verify --fingerprint` is the
 portable check when the pasted relay is present but its producing-machine relay file
@@ -129,8 +130,8 @@ mandatory.
 
 ## 5. Resume without duplicating work
 
-WHEN a relay arrives in a fresh session → DO resolve the state, read it, and verify
-the relay fingerprint before mutation → DONE iff the current live state matches and
+WHEN a relay arrives in a fresh session → DO resolve the state, verify the relay and
+boot, read the boot, and run liveness before mutation → DONE iff no session is running, the current live state matches, and
 the next action comes from that state rather than memory or /compact.
 
 Apply status before NEXT TASK:
@@ -149,8 +150,8 @@ file-only audit in §3 before acting, then change that line to
 `TTNS:LOW_CONTEXT_AUDIT=completed` → DONE iff the marker reads `completed` before the
 one stated action runs.
 
-The lean relay makes this a bootstrap gate: until the state is resolved, read, and
-verified, do only that or report you cannot — no task action, artifact read, edit, or
+The relay makes this a bootstrap gate: until the state and boot are verified, the
+boot is read, and liveness is checked, do only that or report you cannot — no task action, artifact read, edit, or
 external action, even though the NEXT TASK preview is visible. Before the first
 substantive work, recite one block — Handoff ID, verify result (or `not_run: <reason>`),
 the C#/G# ID list, the Goal and Waiting on lines (schema 2 state), STATUS in one line,
@@ -193,3 +194,14 @@ current action without loading the archive.
 
 Compress prose, never exact C#/G# text, fixed values, decision reasons, or artifact
 locators. Re-run the file-only audit and finalize after compaction.
+
+WHEN a section exceeds its canonical LF character budget (STATUS 2,000; NEXT TASK
+1,500; OPEN ISSUES 3,000; INVARIANTS 2,000; each ARTIFACT INDEX row 400), or finalize
+prints `[WARN]` → DO compact that section before the next finalize, moving completed
+history into DECISIONS or a referenced archive → DONE iff the warning is resolved
+and the boot fits 24,000 characters without `--emergency`.
+
+WHEN the boot exceeds 24,000 characters → DO compact the largest reported sections,
+keeping every C#/G# verbatim; use `--emergency` only for an unavoidable boundary →
+DONE iff normal finalize succeeds, or the emergency relay and boot both declare the
+exceeded budget and MUST7 remains unmet.

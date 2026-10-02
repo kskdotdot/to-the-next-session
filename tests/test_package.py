@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 import uuid
 
@@ -35,7 +36,11 @@ RELAY_V2_FROZEN_SHA256 = (
 RELAY_V3_FROZEN_SHA256 = (
     "5c7cc2a986dc8ba2b79af3e1e3b4c107d97fb98be5df59b64c6b338c1247693e"
 )
+RELAY_V4_FROZEN_SHA256 = (
+    "04c904094a382f1f320731bf51f0be521b867223c89dd5d1e31480d971555205"
+)
 FROZEN_RELAY_TEMPLATES = {
+    "4": ("relay-prompt-template-v4.md", RELAY_V4_FROZEN_SHA256),
     "1": ("relay-prompt-template-v1.md", RELAY_V1_FROZEN_SHA256),
     "2": ("relay-prompt-template-v2.md", RELAY_V2_FROZEN_SHA256),
     "3": ("relay-prompt-template-v3.md", RELAY_V3_FROZEN_SHA256),
@@ -68,10 +73,10 @@ def load_helper():
 class PublicPackageContractTests(unittest.TestCase):
     def test_release_version_and_public_entrypoints(self):
         skill = read("SKILL.md")
-        self.assertRegex(skill, r"(?m)^  version: 0\.8\.1$")
+        self.assertRegex(skill, r"(?m)^  version: 0\.10\.0$")
         readme = read("README.md")
-        self.assertIn("version-0.8.1", readme)
-        self.assertIn("Status: **v0.8.1**", readme)
+        self.assertIn("version-0.10.0", readme)
+        self.assertIn("Status: **v0.10.0**", readme)
         self.assertIn("scripts/handoff.py", readme)
         self.assertNotIn("markdown-only", readme.casefold())
 
@@ -113,10 +118,12 @@ class PublicPackageContractTests(unittest.TestCase):
                 )
 
         relay = read("assets/relay-prompt-template.md")
-        self.assertIn("<!-- TTNS:RELAY_SCHEMA=4 -->", relay)
+        self.assertIn("<!-- TTNS:RELAY_SCHEMA=5 -->", relay)
         tokens = set(re.findall(r"@@TTNS_[A-Z_]+@@", relay))
         # The lean relay carries only the pointer/orientation/guard/next tokens.
-        self.assertEqual(len(tokens), 9)
+        self.assertEqual(len(tokens), 11)
+        self.assertIn("@@TTNS_BOOT_LOCATOR@@", tokens)
+        self.assertIn("@@TTNS_BOOT_FINGERPRINT@@", tokens)
         self.assertIn("@@TTNS_ORIENTATION@@", tokens)
         self.assertIn("@@TTNS_ACTIVE_ACTION_GUARDS@@", tokens)
         # It drops the verbose bodies that duplicate the canonical state file.
@@ -151,9 +158,9 @@ class FillTokenAndRelaySchemaTests(unittest.TestCase):
 
     def setUp(self):
         self.token = uuid.uuid4().hex
-        self.root = ROOT.parent / f".ttns-pkgtest-{self.token}"
-        self.root.mkdir()
-        self.addCleanup(shutil.rmtree, self.root, True)
+        temporary = tempfile.TemporaryDirectory(prefix=".ttns-pkgtest-", dir=Path(__file__).parent)
+        self.root = Path(temporary.name)
+        self.addCleanup(temporary.cleanup)
         self.state = self.root / "01_state.md"
         self.relay = self.root / "02_relay.md"
         self.artifact = self.root / "artifact.txt"
@@ -433,15 +440,15 @@ One phase is complete; the next phase has not started.
                     raw.decode("utf-8"),
                 )
 
-    # 9. The lean v4 render (schema-2 state) keeps orientation, the still-binding G#
+    # 9. The lean v5 render (schema-2 state) keeps orientation, the still-binding G#
     # guards, the next-task preview, and the recitation ack — and drops the verbose
     # bodies (C#, artifact rows, STATUS paragraph) that duplicate the state file.
-    def test_v4_lean_relay_keeps_orientation_guards_drops_verbose_bodies(self):
+    def test_v5_lean_relay_keeps_orientation_guards_drops_verbose_bodies(self):
         self.write_state(schema="2")
         result = self.finalize()
         self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
         relay = self.relay.read_text(encoding="utf-8")
-        self.assertIn("<!-- TTNS:RELAY_SCHEMA=4 -->", relay)
+        self.assertIn("<!-- TTNS:RELAY_SCHEMA=5 -->", relay)
         # Kept: orientation, active guards verbatim, bootstrap gate, ack.
         self.assertIn("Orientation — verbatim from the state", relay)
         self.assertIn("- **Goal:** Ship the fixture change end-to-end", relay)

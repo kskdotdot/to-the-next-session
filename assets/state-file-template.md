@@ -67,7 +67,7 @@ DECISIONS with its reason; do not leave a stale guard active.
 
 ## STATUS
 
-<!-- fill: present reality in 2-6 sentences; tag unverified claims `[unverified]`; no obsolete history -->
+<!-- fill: present reality only, at most 2,000 characters; completed history goes to DECISIONS or a referenced archive, never here -->
 <!-- TTNS:BEGIN:STATUS -->
 @@TTNS_FILL_STATUS@@
 <!-- TTNS:END:STATUS -->
@@ -78,6 +78,7 @@ DECISIONS with its reason; do not leave a stale guard active.
 <!-- TTNS:BEGIN:NEXT_TASK -->
 @@TTNS_FILL_NEXT_TASK@@
 Required artifact IDs: @@TTNS_FILL_NEXT_TASK_ARTIFACT_IDS@@ <!-- fill: A1, A3 or none -->
+Required decision IDs: @@TTNS_FILL_NEXT_TASK_DECISION_IDS@@ <!-- fill: D3, D7 or none -->
 <!-- TTNS:END:NEXT_TASK -->
 
 Only the listed A# IDs are eager reads in the fresh session. Everything else remains
@@ -85,7 +86,7 @@ deferred until the task actually needs it.
 
 ## ARTIFACT INDEX
 
-<!-- fill: A1 = required ground truth, A2 = deferred; add more A# rows for additional artifacts -->
+<!-- fill: What it is ≤ 120 chars; no history, no prose; one row per artifact -->
 | ID | Locator on this machine | What it is | Cheapest safe verification | Portable locator |
 |---|---|---|---|---|
 | A1 | `@@TTNS_FILL_A1_LOCATOR@@` | @@TTNS_FILL_A1_WHAT@@ | @@TTNS_FILL_A1_VERIFY@@ | @@TTNS_FILL_A1_PORTABLE@@ |
@@ -106,6 +107,9 @@ Goal and completion test live in ORIENTATION above; keep them there, not here.
 
 ## DECISIONS
 
+A decision that still binds the whole task belongs in C# or INVARIANTS so the boot
+view carries it; D# bodies travel only when NEXT TASK names them.
+
 ### D1 — @@TTNS_FILL_D1_TITLE@@ <!-- fill: title -->
 
 - **Chosen:** @@TTNS_FILL_D1_CHOSEN@@
@@ -121,7 +125,7 @@ future action. Never invent missing provenance after chat history is gone.
 - [ ] @@TTNS_FILL_OPEN_ISSUE@@ <!-- fill: queued work beyond NEXT TASK -->
 - [ ] `[unverified]` @@TTNS_FILL_OPEN_ISSUE_UNVERIFIED@@ <!-- fill: claim and the A#/probe that can settle it -->
 
-## HANDOFF AUDIT — standard-path checklist (6 MUST)
+## HANDOFF AUDIT — standard-path checklist (7 MUST)
 
 - [ ] **MUST1 IDs:** every C# and active G# is explicit and uniquely numbered; none
       was silently dropped.
@@ -136,6 +140,9 @@ future action. Never invent missing provenance after chat history is gone.
 - [ ] **MUST6 finalize + read-back:** `finalize` succeeded after the last edit and
       its stdout copy box is the exact saved relay, pasted last with nothing after
       it.
+
+- [ ] **MUST7 boot budget:** boot view fits BOOT_BUDGET (finalize passed without
+      `--emergency`); STATUS is present-tense within budget.
 
 Cross-machine transport, the manual fallback, and close/supersede use the full audit
 in `references/playbook.md` §3.

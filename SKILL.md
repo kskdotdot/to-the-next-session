@@ -15,7 +15,7 @@ description: >-
   operational input. After valid activation, keep the non-terminal state current
   through waiting_user, resume, and close; never create speculative state.
 metadata:
-  version: 0.8.1
+  version: 0.10.0
 ---
 
 # To The Next Session
@@ -44,7 +44,7 @@ The state preserves; the relay launches. Always produce both for a real handoff.
    rather than reconstructing them at the end.
 3. Sweep the visible conversation for approvals, corrections, and user-consulted
    decisions. Record what was chosen, why, what was rejected, and the honest source.
-4. Run the template-embedded HANDOFF AUDIT (6 MUST) at the bottom of the state file.
+4. Run the template-embedded HANDOFF AUDIT (7 MUST) at the bottom of the state file.
    Fix the file, not the disappearing conversation. For cross-machine transport, the
    manual fallback, or closing/superseding a state, use the full audit and lifecycle
    detail in `references/playbook.md`.
@@ -55,13 +55,23 @@ The state preserves; the relay launches. Always produce both for a real handoff.
 6. Use the helper stdout as the final copy-paste box without editing it or adding
    text after it.
 
-`finalize` validates the state and renders the lean relay: it copies the ORIENTATION,
-the still-binding G# guards, and the single NEXT TASK verbatim, and carries a
-freshness-verified pointer (state locator plus fingerprint) to the canonical state for
-everything else — the C# constraints, artifact index, STATUS, and decisions stay in the
-state file and are read there, not reprinted into the copy box. It then atomically saves
-and verifies the relay and emits it in a fence longer than any backtick run inside it. It
-does not decide whether the prose is sufficient; that remains the producing agent's audit.
+`finalize` validates the state, generates its BOOT VIEW, and saves both boot and
+schema-5 relay atomically per file with read-back verification. The relay carries
+both locators and canonical LF fingerprints, plus ORIENTATION, active G#, and NEXT
+TASK verbatim. The boot carries every C#/G# in full, present STATUS, NEXT TASK,
+INVARIANTS, required A#/D# entries, and OPEN ISSUES, followed by a completeness index.
+Use `--boot <boot.md>` to choose its path; otherwise `ttns-relay-` becomes
+`ttns-boot-`, or `<relay-stem>.boot.md` is used. Transport the boot beside the state
+for cross-machine use. The helper emits the saved relay in a fence longer than any
+backtick run inside it. Semantic sufficiency remains the producing agent's audit.
+
+Section budgets count canonical LF characters: STATUS 2,000; NEXT TASK 1,500;
+OPEN ISSUES 3,000; INVARIANTS 2,000; each ARTIFACT INDEX row 400. Exceeding a section
+prints `[WARN]` without changing the exit code. The complete boot budget is 24,000
+characters; `boot` and `finalize` reject an oversized boot with exit 3 and identify
+up to three sections to compact. `--emergency` permits saving with a budget-exceeded
+marker in both boot and relay; verification still works, but MUST7 is not met.
+Never shorten C#/G# to fit a budget.
 
 Fill every shipped `@@TTNS_FILL_*@@` token; finalize rejects a state with any
 leftover fill token (named individually) or with any other reserved `@@TTNS_*@@`
@@ -80,45 +90,43 @@ this path.
 
 Before any task mutation:
 
-1. Resolve the canonical State locator. Do not use an old-machine absolute path as
-   the recovery mechanism for a cross-machine handoff.
-2. Read the STATE FILE top-to-bottom and check its status.
-3. Verify freshness with the expected fingerprint embedded in the relay:
+1. Resolve the canonical State locator. For cross-machine recovery, resolve the
+   portable anchor first.
+2. Run `python <skill-root>/scripts/handoff.py verify --state <state.md> --relay <relay.md>`.
+   This checks the state, saved relay, boot locator/fingerprint, and regenerated boot
+   bytes. Use `--boot <boot.md>` if the boot was materialized at another local path.
+   If only pasted relay text is available, use `verify --state <state.md> --fingerprint
+   <sha256-lf:...>`, regenerate with `boot --state <state.md>`, and compare its
+   canonical LF fingerprint with the relay's boot fingerprint before reading it.
+   Add `--emergency` to that regeneration only for a relay carrying the exceeded marker.
+3. Read the BOOT VIEW top-to-bottom, including every C# and G# and Completeness.
+   Open the state file only for sections listed as omitted when the task needs them.
+   Legacy relays without a boot retain their frozen bootstrap instructions.
+4. Run `python <skill-root>/scripts/handoff.py liveness`. Defaults work in Claude
+   Code; on other hosts, explicitly supply `--projects-dir` and `--self`.
+   If any verdict is `running`, do no work: report "Original session <id> is still
+   running. Close it before continuing." Report `unknown` with its reason; it does
+   not block continuation. Never load JSONL bodies into context for this check.
+5. Before substantive work, recite Handoff ID, verify result (or `not_run: <reason>`),
+   C#/G# IDs only, Goal, Waiting on, STATUS in one line, the single NEXT TASK, and
+   Last updated from the verified boot. This is diagnostic, not proof of compliance.
+6. If verification fails, status is terminal, or a newer state exists, report the
+   conflict. If status is `waiting_user`, wait for the named input without mutation.
+   If the boot carries `TTNS:LOW_CONTEXT_AUDIT=required`, complete the full file-only
+   audit in `references/playbook.md` §3 before acting, then update that marker to
+   `TTNS:LOW_CONTEXT_AUDIT=completed` in the state.
+7. For `active`, open only required A# artifacts, perform the single action, and
+   persist the same state. Re-finalize after every state change before a boundary.
 
-   `python <skill-root>/scripts/handoff.py verify --state <state.md> --fingerprint <sha256-lf:...>`
-
-4. If verification fails, status is terminal, or a newer state exists, do not run
-   the relay's old NEXT TASK. Read the latest state or report the conflict.
-5. If the state carries `TTNS:LOW_CONTEXT_AUDIT=required`, complete the full
-   file-only audit in `references/playbook.md` §3 before acting, then change that
-   line to `TTNS:LOW_CONTEXT_AUDIT=completed`.
-6. If status is `waiting_user`, perform no task mutation until the named input
-   arrives. If `active`, read only the A# IDs listed in NEXT TASK, run the one
-   stated action, then persist the new state.
-7. Keep updating the same state file. Re-finalize after every state change before
-   another boundary.
-
-The lean relay states this as a bootstrap gate: until the state is resolved, read, and
-verified, do only that (or report you cannot) — no task action, artifact read, edit, or
-external action, even though the NEXT TASK preview is visible.
-
-Before the first substantive work, recite one block: Handoff ID, verify result (or
-`not_run: <reason>` if verification could not run), the C# and G# ID list (IDs only,
-not the body text), the Goal and Waiting on lines (schema 2 state), STATUS in one
-line, the single NEXT TASK, and the state's Last updated. This is a diagnostic
-recitation, not proof of compliance.
-
-For same-machine resume with the saved relay still present, run the stronger full
-comparison:
-
-`python <skill-root>/scripts/handoff.py verify --state <state.md> --relay <relay.md>`
+Until verification, boot reading, liveness, and recitation complete, perform only
+bootstrap or report why it cannot complete; do not read task artifacts or act on
+NEXT TASK.
 
 ## State semantics
 
 - **C# — INVIOLABLE CONSTRAINTS:** task-wide correctness and scope rules. Copy them
   verbatim into the state and never shorten them. The lean relay does not reprint the
-  C# bodies; it carries a freshness-verified pointer, and the resuming session reads
-  the constraints from the state file it must open before acting.
+  C# bodies; the verified boot view carries every constraint verbatim.
 - **G# — ACTIVE ACTION GUARDS:** temporary authority or action boundaries, such as
   "push and deploy await explicit instruction." Because they gate irreversible action,
   they are copied verbatim into the relay while active. Carry only currently active
@@ -126,7 +134,9 @@ comparison:
 - **A# — ARTIFACT INDEX:** stable IDs for ground truth. NEXT TASK names only the A#
   entries needed now, so a cold session does not waste context preloading everything.
 - **D# — DECISIONS:** chosen option, because, rejected option with its holding
-  conditions, and source. This prevents rejected ideas returning after /compact.
+  conditions, and source. NEXT TASK may name `Required decision IDs: D3, D7`
+  (omitted means none). Only named D# subsections travel in the boot. A decision
+  binding the entire task belongs in C# or INVARIANTS.
 
 A failure that changed a decision belongs in D# (failure condition, what was
 observed, and the retry condition, briefly); an unresolved, retryable failure
@@ -165,13 +175,17 @@ changes only lifecycle metadata and makes every prior relay stale.
 
 ## Helper commands and failures
 
-- `finalize`: validate, render, atomic-save, read-back, verify, emit copy box.
+- `finalize`: validate, render/save boot and relay, read-back, verify, emit copy box.
+- `boot --state S [--out B] [--emergency]`: validate and render the deterministic
+  boot to stdout or atomically save it.
+- `liveness [--projects-dir P] [--self ID] [--since-minutes 30] [--json]`: scan
+  recently modified session tails; emit only timestamps, metadata, and verdicts.
 - `verify`: compare state with a saved relay or expected fingerprint; read-only.
 - `emit`: verify the saved pair, then emit the saved relay as a copy box.
 - `close`: atomically move a live state to a terminal lifecycle status.
 
 Exit codes are stable: `0` success, `2` CLI usage, `3` invalid state,
-`4` stale/terminal/concurrent relay, `5` filesystem failure, and `1`
+`4` stale/terminal/concurrent relay, `5` filesystem/liveness failure, and `1`
 unexpected internal/template failure. On failure, do not paste stdout as a relay.
 
 If Python is unavailable, use the manual fallback in `references/playbook.md` and
@@ -195,9 +209,8 @@ fingerprint or atomicity checks ran.
 
 - `assets/state-file-template.md`: schema 2 state.
 - `assets/state-file-template-low-context.md`: emergency low-context state.
-- `assets/relay-prompt-template.md`: lean schema-4 render template (the live one); the
-  verbose schema-3 template is frozen as `relay-prompt-template-v3.md` for backward-
-  compatible verification of relays saved before the lean change.
+- `assets/relay-prompt-template.md`: live schema-5 template; schemas 1 through 4
+  are frozen in versioned template files for backward-compatible verification.
 - `references/playbook.md`: persist, audit, locator, lifecycle, fallback, compact.
 - `references/when-to-handoff.md`: boundary against /compact, memory, and planning.
 - `references/worked-example.md`: complete same/cross-machine example.

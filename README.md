@@ -1,10 +1,10 @@
 # to-the-next-session
 
-[![version](https://img.shields.io/badge/version-0.8.1-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.10.0-blue)](CHANGELOG.md)
 [![license](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Python](https://img.shields.io/badge/helper-Python%203.10%2B-3776AB)](scripts/handoff.py)
 
-> Status: **v0.8.1** — usable; interfaces may evolve.
+> Status: **v0.10.0** — usable; interfaces may evolve.
 
 Move precision-critical work to a fresh AI session without trusting a lossy summary.
 
@@ -13,14 +13,15 @@ truth when one omitted threshold, rejected alternative, permission guard, or exa
 number can change the result. This skill moves that state into durable files before
 the conversation disappears.
 
-## The two artifacts
+## The handoff files
 
 - **STATE FILE:** the sole source of truth for current task intent, constraints,
   decisions, status, next action, and artifact locators.
 - **RELAY PROMPT:** a copy-paste launch message deterministically rendered from the
   state, saved, read back, freshness-checked, and emitted as a final fenced box.
 
-The state preserves. The relay launches. A real handoff needs both.
+The state preserves. The relay launches. A real handoff needs both and a generated
+BOOT VIEW: the bounded first read, with every C#/G# verbatim and a completeness index.
 
 ## What v0.5 adds
 
@@ -87,6 +88,15 @@ curates meaning; the script prevents mechanical drift.
   before this change (state schema 2 accepts relay schema 3 or 4). The state file, its
   schema, and the fingerprint contract are unchanged.
 
+## What v0.10 adds
+
+- A deterministic boot view, capped at 24,000 characters, with section warnings and
+  an explicit `--emergency` override. C#/G# are never shortened to fit.
+- Relay schema 5 carries the boot locator and fingerprint; verification regenerates
+  and compares boot bytes. Frozen relay schemas 1 through 4 remain verifiable.
+- Resume reads the verified boot, then runs `liveness` without loading transcript
+  bodies. Required A#/D# entries are selected by NEXT TASK.
+
 ## Quick start: produce
 
 Copy the template into the active task:
@@ -104,22 +114,14 @@ python <skill-root>/scripts/handoff.py finalize \
   --relay <task-root>/02_RELAY_PROMPT.md
 ```
 
+Finalize also saves `02_RELAY_PROMPT.boot.md`; use `--boot` to choose another path.
 On success, stdout contains only a dynamically fenced copy box around the exact
 saved relay. Use that as the final content of the handoff response; put nothing after
 the closing fence.
 
 ## Quick start: resume
 
-Resolve and read the state before changing the task. Compare it with the fingerprint
-carried by the pasted relay:
-
-```text
-python <skill-root>/scripts/handoff.py verify \
-  --state <resolved-state.md> \
-  --fingerprint sha256-lf:<64-hex>
-```
-
-When the saved relay file is also present, use the stronger full comparison:
+Resolve the state locator and verify the saved relay and boot:
 
 ```text
 python <skill-root>/scripts/handoff.py verify \
@@ -127,17 +129,24 @@ python <skill-root>/scripts/handoff.py verify \
   --relay <saved-relay.md>
 ```
 
-If verification fails or status is terminal, do not execute the relay's old NEXT
-TASK. Read the latest state or report the conflict.
+Read the BOOT VIEW top-to-bottom, run `python <skill-root>/scripts/handoff.py liveness`,
+and recite the bootstrap acknowledgement before task work. On hosts other than
+Claude Code, supply `--projects-dir` and `--self`. Any `running` session blocks work;
+report `unknown` with its reason. Open omitted state sections only when needed.
+
+If only the pasted relay is available, use `verify --state <resolved-state.md>
+--fingerprint <sha256-lf:...>`, regenerate the boot with `boot --state`, and compare
+its canonical LF fingerprint with the relay's boot fingerprint before reading it.
+If verification fails or status is terminal, do not execute the old NEXT TASK.
 
 ## State model
 
 | ID | Meaning | Relay behavior |
 |---|---|---|
-| C# | task-wide inviolable constraint | verbatim in the state; relay carries a verified pointer, read from the state |
+| C# | task-wide inviolable constraint | verbatim in the state and verified boot |
 | G# | currently active permission/action guard | copied verbatim into the relay while active |
-| A# | artifact with locator and cheapest safe verification | only required IDs are eager; the table stays in the state |
-| D# | chosen decision, reason, rejected option, source | state reference prevents re-litigation |
+| A# | artifact with locator and cheapest safe verification | required rows travel in the boot; other rows stay in the state |
+| D# | chosen decision, reason, rejected option, source | only NEXT TASK named D# subsections travel in the boot |
 
 Statuses:
 
@@ -182,9 +191,9 @@ change requires a new relay.
 line while editing the relay body still fails. Comparison is schema-aware: a schema
 1 relay (saved before v0.6.0) is compared against the frozen v1 template, a schema 2
 relay against the frozen v2 template, a schema 3 relay against the frozen v3 template,
-and a schema 4 relay against the current lean template — and only the
-state-schema/relay-schema pairs finalize can produce are accepted (state 1 → {1, 2},
-state 2 → {3, 4}). `verify --fingerprint` does not read the relay file and is
+a schema 4 relay against the frozen v4 template, and a schema 5 relay against the
+current template plus regenerated boot. Accepted pairs are state 1 → {1, 2} and
+state 2 → {3, 4, 5}. `verify --fingerprint` does not read the relay file and is
 schema-independent.
 
 ## Install as a skill
@@ -205,11 +214,12 @@ SKILL.md                         core workflow and triggers
 agents/openai.yaml               OpenAI/Codex discovery metadata
 assets/state-file-template.md    schema 2 canonical state
 assets/state-file-template-low-context.md  emergency low-context state (schema 2)
-assets/relay-prompt-template.md  lean deterministic render template (schema 4)
+assets/relay-prompt-template.md  boot-aware deterministic render template (schema 5)
 assets/relay-prompt-template-v1.md  frozen schema-1 template (backward-compat verify only)
 assets/relay-prompt-template-v2.md  frozen schema-2 template (backward-compat verify only)
 assets/relay-prompt-template-v3.md  frozen schema-3 template (backward-compat verify only)
-scripts/handoff.py               finalize / verify / emit / close
+assets/relay-prompt-template-v4.md  frozen schema-4 template (backward-compat verify only)
+scripts/handoff.py               finalize / verify / emit / close / boot / liveness
 references/playbook.md           detailed audit and lifecycle
 references/when-to-handoff.md    boundary against /compact, memory, planning
 references/compact-defense.md    runtime defense guidance

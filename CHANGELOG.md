@@ -3,6 +3,28 @@
 All notable changes to this skill are recorded here. Versions follow the
 `metadata.version` field in `SKILL.md`.
 
+## v0.10.0
+
+### Added
+
+- Deterministic `boot --state S [--out B]` with complete verbatim C#/G# blocks,
+  present-state sections, required A#/D# entries, and a completeness index.
+- Section character budgets and a 24,000-character boot limit. Oversized boots
+  fail with exit 3; `--emergency` saves with an explicit exceeded-budget marker.
+- `liveness` scans recently modified session tails (at most 256 KiB each) and
+  reports running/exited/unknown from timestamps without quoting transcript bodies.
+
+### Changed
+
+- `finalize` saves a boot alongside the schema-5 relay. The relay carries boot
+  locator and canonical LF fingerprint; `verify` and `emit` regenerate and check
+  boot bytes. Relay schemas 1 through 4 remain verifiable; schema 4 is frozen.
+- Resume reads the verified boot before liveness and recitation, opening omitted
+  state sections only when needed. NEXT TASK may name required decision IDs.
+- State authoring adds MUST7 and section-budget guidance; growing states are
+  compacted before the next finalize when a section warning appears.
+- CLI standard streams explicitly use UTF-8 for consistent Windows behavior.
+
 ## v0.8.1
 
 Trigger-narrowing bugfix. No helper, schema, template, or runtime-hook behavior
